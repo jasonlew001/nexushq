@@ -36,6 +36,10 @@ const config: Config = {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
         },
+        "zoom-in": {
+          from: { opacity: "0", transform: "scale(0.97)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
         shimmer: {
           "0%": { backgroundPosition: "200% 0" },
           "100%": { backgroundPosition: "-200% 0" },
@@ -45,6 +49,7 @@ const config: Config = {
         "fade-up": "fade-up 200ms ease-out both",
         "fade-in": "fade-in 150ms ease-out both",
         "slide-in-right": "slide-in-right 200ms ease-out both",
+        "zoom-in": "zoom-in 240ms ease-out both",
         shimmer: "shimmer 1.8s linear infinite",
       },
     },

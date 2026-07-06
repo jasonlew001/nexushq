@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
-import { CHART_GRID, CHART_TEXT_MUTED, CHART_ACCENT, NULL_GRAY, tooltipContentStyle, tooltipLabelStyle } from "./chart-theme";
+import { CHART_GRID, CHART_TEXT_MUTED, CHART_ACCENT, NULL_GRAY, tooltipContentStyle, tooltipLabelStyle, tooltipItemStyle } from "./chart-theme";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { StateBucket } from "@/lib/data/signups";
 
@@ -54,6 +54,7 @@ export function SignupsByStateChart({
         <Tooltip
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
           formatter={(value) => [value, "Signups"]}
           cursor={{ fill: "rgba(255,255,255,0.03)" }}
         />

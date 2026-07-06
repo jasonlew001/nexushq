@@ -74,3 +74,10 @@ export const tooltipLabelStyle: React.CSSProperties = {
   fontSize: 11,
   marginBottom: 4,
 };
+
+// Recharts colors tooltip items with the series color when it has one, and
+// falls back to #000 when it doesn't (e.g. bars filled via <Cell>). Black on
+// our dark tooltip surface is unreadable — force ink on every item.
+export const tooltipItemStyle: React.CSSProperties = {
+  color: CHART_TEXT_INK,
+};

@@ -19,6 +19,7 @@ import {
   utmSourceLabel,
   tooltipContentStyle,
   tooltipLabelStyle,
+  tooltipItemStyle,
 } from "./chart-theme";
 
 function shortWeekLabel(iso: string): string {
@@ -67,6 +68,7 @@ export function SignupsByWeekChart({
         <Tooltip
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
           formatter={(value, name) => [value, utmSourceLabel(String(name))]}
           cursor={{ fill: "rgba(255,255,255,0.03)" }}
         />

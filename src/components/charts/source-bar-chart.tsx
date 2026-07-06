@@ -1,24 +1,38 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
-import { CHART_GRID, CHART_TEXT_MUTED, tooltipContentStyle, tooltipLabelStyle } from "./chart-theme";
+import {
+  CHART_GRID,
+  CHART_TEXT_MUTED,
+  colorForCategory,
+  utmSourceLabel,
+  acqSourceLabel,
+  tooltipContentStyle,
+  tooltipLabelStyle,
+  tooltipItemStyle,
+} from "./chart-theme";
 import { EmptyState } from "@/components/ui/empty-state";
 
 interface SourceBarChartProps {
   data: { source: string; count: number }[];
-  colorFor: (key: string) => string;
-  labelFor: (key: string) => string;
+  order: string[]; // stable, count-ranked color assignment order
+  kind: "utm" | "acq";
   emptyLabel: string;
 }
 
 // Horizontal bar list — each bar already carries its category as a Y-axis
 // tick, so identity is never color-alone and no separate legend box is
 // needed (a legend here would just restate the visible labels).
-export function SourceBarChart({ data, colorFor, labelFor, emptyLabel }: SourceBarChartProps) {
+//
+// Labeling/coloring functions live here (client-side) rather than being
+// passed as props — Server Components can't pass plain functions to
+// Client Components across the RSC boundary, only serializable data.
+export function SourceBarChart({ data, order, kind, emptyLabel }: SourceBarChartProps) {
   if (data.length === 0) {
     return <EmptyState label={emptyLabel} />;
   }
 
+  const labelFor = kind === "utm" ? utmSourceLabel : acqSourceLabel;
   const rows = data.map((d) => ({ ...d, label: labelFor(d.source) }));
   const height = Math.max(140, rows.length * 32);
 
@@ -44,12 +58,13 @@ export function SourceBarChart({ data, colorFor, labelFor, emptyLabel }: SourceB
         <Tooltip
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
           formatter={(value) => [value, "Signups"]}
           cursor={{ fill: "rgba(255,255,255,0.03)" }}
         />
         <Bar dataKey="count" maxBarSize={20} radius={[0, 4, 4, 0]}>
           {rows.map((row) => (
-            <Cell key={row.source} fill={colorFor(row.source)} />
+            <Cell key={row.source} fill={colorForCategory(row.source, order)} />
           ))}
         </Bar>
       </BarChart>

@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { CHART_GRID, CHART_TEXT_MUTED, CHART_ACCENT, CHART_SURFACE, tooltipContentStyle, tooltipLabelStyle } from "./chart-theme";
+import { CHART_GRID, CHART_TEXT_MUTED, CHART_ACCENT, CHART_SURFACE, tooltipContentStyle, tooltipLabelStyle, tooltipItemStyle } from "./chart-theme";
 import { formatCentsWhole } from "@/lib/format";
 
 function shortWeekLabel(iso: string): string {
@@ -46,6 +46,7 @@ export function MrrOverTimeChart({
         <Tooltip
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
           formatter={(value) => [formatCentsWhole(Number(value) * 100), "MRR"]}
           cursor={{ stroke: CHART_GRID, strokeWidth: 1 }}
         />

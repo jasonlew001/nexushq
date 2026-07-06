@@ -23,6 +23,7 @@ import {
   CATEGORICAL,
   tooltipContentStyle,
   tooltipLabelStyle,
+  tooltipItemStyle,
 } from "./chart-theme";
 import type { DailyCost, DailyUsage } from "@/lib/data/anthropic-metrics";
 
@@ -120,6 +121,7 @@ export function AnthropicCostChart({
               <Tooltip
                 contentStyle={tooltipContentStyle}
                 labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
                 formatter={(value) => [`$${Number(value).toFixed(2)}`, "Cost"]}
                 cursor={{ stroke: CHART_GRID, strokeWidth: 1 }}
               />
@@ -155,6 +157,7 @@ export function AnthropicCostChart({
               <Tooltip
                 contentStyle={tooltipContentStyle}
                 labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
                 cursor={{ fill: "rgba(255,255,255,0.03)" }}
               />
               <Legend wrapperStyle={{ fontSize: 10, color: CHART_TEXT_MUTED, paddingTop: 4 }} />
