@@ -11,12 +11,14 @@ export function getStripe(): Stripe {
   if (!stripeClient) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
-    // Pinned to match fairway-mvp's webhook (scripts/add-stripe-columns.sql /
-    // the main repo's webhook route) so both apps read the same response
-    // shape. The installed SDK's types only know its own bundled "latest"
-    // version literal — the API itself accepts any version string a
-    // Stripe account has been pinned to, hence the cast.
-    stripeClient = new Stripe(key, { apiVersion: "2025-09-30.basil" as never });
+    // No apiVersion pin: the installed SDK (stripe@22.3.0) validates this
+    // string against its own bundled version list at construction time and
+    // throws if it doesn't recognize it — pinning to an arbitrary version
+    // string (e.g. fairway-mvp's webhook version) isn't safe across SDK
+    // releases. Omitting it uses the account's dashboard-configured default
+    // (or the key's pinned version), which Stripe keeps behavior-compatible
+    // going forward, so no hard-coded string to maintain.
+    stripeClient = new Stripe(key);
   }
   return stripeClient;
 }
