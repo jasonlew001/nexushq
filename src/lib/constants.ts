@@ -17,3 +17,10 @@ export const CANCELING_SOON_WINDOW_DAYS = 14;
 
 // How many trailing weeks the signups/MRR-over-time charts cover.
 export const CHART_WEEKS = 12;
+
+// Shared bucket keys for attribution charts — kept here (not in
+// lib/data/signups.ts) because chart-theme.ts is imported by client
+// components, and lib/data/* pulls in server-only Supabase code.
+export const UNATTRIBUTED = "unattributed";
+export const OTHER_SOURCE = "other";
+export const NO_ACQ_DATA = "no_data";

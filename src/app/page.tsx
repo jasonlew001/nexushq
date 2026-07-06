@@ -3,6 +3,7 @@ import { requireFounder } from "@/lib/auth";
 import { Header } from "@/components/header";
 import { ActionStrip, ActionStripSkeleton } from "@/components/action-strip";
 import { KpiRow, KpiRowSkeleton } from "@/components/kpi-row";
+import { ChartsSection, ChartsSectionSkeleton } from "@/components/charts/charts-section";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,10 @@ export default async function Page() {
 
         <Suspense fallback={<KpiRowSkeleton />}>
           <KpiRow />
+        </Suspense>
+
+        <Suspense fallback={<ChartsSectionSkeleton />}>
+          <ChartsSection />
         </Suspense>
       </div>
     </main>
