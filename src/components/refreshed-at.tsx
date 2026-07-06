@@ -1,0 +1,27 @@
+import { getAllAuthUsers } from "@/lib/data/users";
+import { getStripeMetrics, getLifetimeRevenue } from "@/lib/data/stripe-metrics";
+import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
+import { formatRelativeTime } from "@/lib/format";
+
+// Oldest fetchedAt across every cached data source — an honest "as of"
+// timestamp rather than "now" (which would just be when the page rendered).
+export async function RefreshedAt() {
+  const [users, stripe, revenue, anthropic] = await Promise.all([
+    getAllAuthUsers(),
+    getStripeMetrics(),
+    getLifetimeRevenue(),
+    getAnthropicMetrics(),
+  ]);
+
+  const oldest = [users.fetchedAt, stripe.fetchedAt, revenue.fetchedAt, anthropic.fetchedAt].sort()[0];
+
+  return (
+    <p className="text-xs text-faint">
+      Data refreshed <span className="tnum">{formatRelativeTime(oldest)}</span>
+    </p>
+  );
+}
+
+export function RefreshedAtSkeleton() {
+  return <p className="text-xs text-faint">Data refreshed —</p>;
+}

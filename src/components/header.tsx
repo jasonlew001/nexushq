@@ -1,14 +1,15 @@
-import { formatRelativeTime } from "@/lib/format";
+import { Suspense } from "react";
+import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
 
-export function Header({ refreshedAt }: { refreshedAt: string }) {
+export function Header() {
   return (
     <header className="mb-6 flex items-center justify-between">
       <h1 className="text-lg font-semibold tracking-tight">
         Nexus <span className="text-gold">HQ</span>
       </h1>
-      <p className="text-xs text-faint">
-        Data refreshed <span className="tnum">{formatRelativeTime(refreshedAt)}</span>
-      </p>
+      <Suspense fallback={<RefreshedAtSkeleton />}>
+        <RefreshedAt />
+      </Suspense>
     </header>
   );
 }

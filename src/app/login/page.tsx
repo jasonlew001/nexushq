@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-sm animate-fade-up">
+      <div className="w-full max-w-sm motion-safe:animate-fade-up">
         <h1 className="mb-8 text-center text-lg font-semibold tracking-tight">
           Nexus <span className="text-gold">HQ</span>
         </h1>
