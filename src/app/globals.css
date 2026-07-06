@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Green-tinted near-black. HSL triplets so Tailwind can apply alpha. */
+  --bg: 150 15% 5%; /* #0B0F0D */
+  --surface: 150 12% 8%; /* #111714 */
+  --surface-2: 150 12% 10%; /* #161D19 */
+  --edge: 152 17% 16%; /* #223028 */
+  --edge-strong: 152 17% 24%;
+  --ink: 144 10% 92%; /* #E7ECE9 */
+  --muted: 150 8% 60%; /* #8FA098 */
+  --faint: 150 8% 40%;
+  --accent: 156 51% 49%; /* #3DBE8B */
+  --gold: 46 65% 52%; /* #D4AF37 */
+  --danger: 358 75% 59%; /* #E5484D */
+  --warn: 37 90% 55%; /* #F5A524 */
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-bg text-ink antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+/* Dense-numeric everywhere numbers align in columns */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin scrollbars befitting a command center */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--edge-strong)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--edge-strong));
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Motion is opt-in: animations only when the user hasn't asked for less */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Staggered section entrance — applied via .stagger > * */
+@media (prefers-reduced-motion: no-preference) {
+  .stagger > * {
+    animation: fade-up 240ms ease-out both;
+  }
+  .stagger > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stagger > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stagger > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .stagger > *:nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .stagger > *:nth-child(6) {
+    animation-delay: 200ms;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
