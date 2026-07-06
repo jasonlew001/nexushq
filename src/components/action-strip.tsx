@@ -1,9 +1,11 @@
-import { AlertTriangle, Clock, UserPlus, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Clock, UserPlus, DollarSign, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCustomerRows } from "@/lib/data/customers";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
-import { startOfWeekUTC } from "@/lib/format";
+import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
+import { startOfWeekUTC, formatCentsWhole } from "@/lib/format";
+import { ANTHROPIC_MONTHLY_SPEND_ALERT_USD } from "@/lib/constants";
 
 interface ActionItem {
   key: string;
@@ -14,12 +16,17 @@ interface ActionItem {
 }
 
 export async function ActionStrip() {
-  const [rows, stripe] = await Promise.all([getCustomerRows(), getStripeMetrics()]);
+  const [rows, stripe, anthropic] = await Promise.all([
+    getCustomerRows(),
+    getStripeMetrics(),
+    getAnthropicMetrics(),
+  ]);
 
   const pastDue = rows.filter((r) => r.status === "past_due");
   const thisWeekStart = startOfWeekUTC(new Date());
   const newThisWeek = rows.filter((r) => startOfWeekUTC(new Date(r.signedUpAt)) === thisWeekStart);
   const cancelingSoon = stripe.data.cancelingSoon;
+  const anthropicMtdUsd = anthropic.data.monthToDateCents / 100;
 
   const items: ActionItem[] = [];
 
@@ -54,6 +61,16 @@ export async function ActionStrip() {
       tone: "warn",
       label: `${cancelingSoon.length} subscription${cancelingSoon.length === 1 ? "" : "s"} canceling soon`,
       detail: "within 14 days",
+    });
+  }
+
+  if (anthropicMtdUsd >= ANTHROPIC_MONTHLY_SPEND_ALERT_USD) {
+    items.push({
+      key: "anthropic-spend",
+      icon: DollarSign,
+      tone: "warn",
+      label: `Anthropic spend trending above $${ANTHROPIC_MONTHLY_SPEND_ALERT_USD}`,
+      detail: `${formatCentsWhole(anthropic.data.monthToDateCents)} month-to-date`,
     });
   }
 
