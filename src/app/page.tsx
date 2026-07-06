@@ -1,11 +1,26 @@
-// Placeholder shell — replaced as sections land in later phases.
-export default function Page() {
+import { Suspense } from "react";
+import { requireFounder } from "@/lib/auth";
+import { Header } from "@/components/header";
+import { KpiRow, KpiRowSkeleton } from "@/components/kpi-row";
+
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  await requireFounder();
+
+  // TODO(Phase 9): replace with the oldest fetchedAt across all cached
+  // sources once Stripe/Anthropic fetchers land (Phases 5 & 7).
+  const refreshedAt = new Date().toISOString();
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
-      <h1 className="text-lg font-semibold tracking-tight">
-        Nexus <span className="text-gold">HQ</span>
-      </h1>
-      <p className="mt-2 text-muted">Command center scaffolding.</p>
+      <Header refreshedAt={refreshedAt} />
+
+      <div className="space-y-6">
+        <Suspense fallback={<KpiRowSkeleton />}>
+          <KpiRow />
+        </Suspense>
+      </div>
     </main>
   );
 }
