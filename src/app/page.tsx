@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
 import { Header } from "@/components/header";
+import { ActionStrip, ActionStripSkeleton } from "@/components/action-strip";
 import { KpiRow, KpiRowSkeleton } from "@/components/kpi-row";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,10 @@ export default async function Page() {
       <Header refreshedAt={refreshedAt} />
 
       <div className="space-y-6">
+        <Suspense fallback={<ActionStripSkeleton />}>
+          <ActionStrip />
+        </Suspense>
+
         <Suspense fallback={<KpiRowSkeleton />}>
           <KpiRow />
         </Suspense>
