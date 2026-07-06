@@ -5,6 +5,7 @@ import { ActionStrip, ActionStripSkeleton } from "@/components/action-strip";
 import { KpiRow, KpiRowSkeleton } from "@/components/kpi-row";
 import { ChartsSection, ChartsSectionSkeleton } from "@/components/charts/charts-section";
 import { CostsPanel, CostsPanelSkeleton } from "@/components/costs/costs-panel";
+import { CustomerSection, CustomerSectionSkeleton } from "@/components/customers/customer-section";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,10 @@ export default async function Page() {
 
         <Suspense fallback={<ChartsSectionSkeleton />}>
           <ChartsSection />
+        </Suspense>
+
+        <Suspense fallback={<CustomerSectionSkeleton />}>
+          <CustomerSection />
         </Suspense>
 
         <Suspense fallback={<CostsPanelSkeleton />}>
