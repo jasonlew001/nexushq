@@ -76,7 +76,7 @@ export async function ActionStrip() {
 
   if (items.length === 0) {
     return (
-      <Card className="flex items-center gap-2 !py-2.5">
+      <Card hud className="flex items-center gap-2 !py-2.5">
         <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
         <span className="text-sm text-muted">All clear — no action items.</span>
       </Card>
@@ -88,18 +88,23 @@ export async function ActionStrip() {
     warn: "text-warn",
     neutral: "text-ink",
   } as const;
+  const TONE_HUD = {
+    danger: "danger",
+    warn: "warn",
+    neutral: "neutral",
+  } as const;
 
   return (
     <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
-        <Card key={item.key} className="flex items-start gap-2.5">
+        <Card key={item.key} hud hudTone={TONE_HUD[item.tone]} className="flex items-start gap-2.5">
           <item.icon
             className={`mt-0.5 h-4 w-4 shrink-0 ${TONE_TEXT[item.tone]}`}
             strokeWidth={1.5}
           />
           <div className="min-w-0">
             <p className={`text-sm font-medium ${TONE_TEXT[item.tone]}`}>{item.label}</p>
-            <p className="truncate text-xs text-faint">{item.detail}</p>
+            <p className="truncate font-mono text-xs text-faint">{item.detail}</p>
           </div>
         </Card>
       ))}

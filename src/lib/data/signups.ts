@@ -20,6 +20,16 @@ export interface SourceBucket {
   count: number;
 }
 
+export interface DailySignupBucket {
+  date: string; // YYYY-MM-DD, UTC
+  count: number;
+}
+
+export interface AttributionSplit {
+  tracked: number;
+  unknown: number;
+}
+
 export interface SignupMetrics {
   totalSignups: number;
   payingSubscribers: number;
@@ -27,7 +37,18 @@ export interface SignupMetrics {
   weekly: WeeklySignupBucket[];
   byState: StateBucket[];
   unknownStateCount: number;
+  // "current" here is the last *complete* calendar week — the canonical
+  // "signups this week" figure, chosen because it's the one the WoW % is
+  // comparable against (a partial in-progress week can't be fairly compared
+  // to a full prior week). The action strip's "new this week" is a
+  // deliberately different, separate figure: the current in-progress week.
   wow: { current: number; previous: number; deltaPct: number | null };
+  // Trailing 7 calendar days (UTC), including today's partial day — for the
+  // day-bar chart. Independent of the weekly buckets above.
+  dailySignups: DailySignupBucket[];
+  // Attribution split for the same cohort as `wow.current` (last complete
+  // week), so the This-week panel's numbers are internally consistent.
+  lastCompleteWeekAttribution: AttributionSplit;
   // Stable, count-ranked category order — the source of truth for color
   // assignment so the same UTM source always gets the same chart color,
   // whether it appears in the weekly stack or the breakdown chart.
@@ -37,6 +58,7 @@ export interface SignupMetrics {
 }
 
 const TOP_UTM_SOURCE_CAP = 6;
+const DAILY_WINDOW_DAYS = 7;
 const ACQ_SOURCE_ORDER: Exclude<AcqSource, null>[] = [
   "coach_referral",
   "instagram",
@@ -134,6 +156,36 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   const previous = completeWeeks.at(-2)?.total ?? 0;
   const deltaPct = previous > 0 ? (current - previous) / previous : null;
 
+  // Attribution split for that same last-complete-week cohort — derived
+  // from the weekly bucket we already built, not a new pass over `rows`.
+  const lastCompleteWeekBucket = completeWeeks.at(-1);
+  const lastCompleteWeekUnattributed = lastCompleteWeekBucket?.byUtmSource[UNATTRIBUTED] ?? 0;
+  const lastCompleteWeekAttribution: AttributionSplit = {
+    tracked: (lastCompleteWeekBucket?.total ?? 0) - lastCompleteWeekUnattributed,
+    unknown: lastCompleteWeekUnattributed,
+  };
+
+  // Trailing 7 calendar days (UTC) including today, zero-filled so the bar
+  // chart always renders 7 bars regardless of gaps.
+  const dailyMap = new Map<string, number>();
+  const today = new Date();
+  const earliestDayKey = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - (DAILY_WINDOW_DAYS - 1))
+  )
+    .toISOString()
+    .slice(0, 10);
+  for (const row of rows) {
+    const dayKey = row.signedUpAt.slice(0, 10);
+    if (dayKey < earliestDayKey) continue;
+    dailyMap.set(dayKey, (dailyMap.get(dayKey) ?? 0) + 1);
+  }
+  const dailySignups: DailySignupBucket[] = [];
+  for (let i = DAILY_WINDOW_DAYS - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - i));
+    const key = d.toISOString().slice(0, 10);
+    dailySignups.push({ date: key, count: dailyMap.get(key) ?? 0 });
+  }
+
   return {
     totalSignups,
     payingSubscribers,
@@ -142,6 +194,8 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     byState,
     unknownStateCount,
     wow: { current, previous, deltaPct },
+    dailySignups,
+    lastCompleteWeekAttribution,
     topUtmSources,
     utmBreakdown,
     hearAboutUsBreakdown,

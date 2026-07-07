@@ -18,6 +18,10 @@ export const CANCELING_SOON_WINDOW_DAYS = 14;
 // How many trailing weeks the signups/MRR-over-time charts cover.
 export const CHART_WEEKS = 12;
 
+// System-strip staleness threshold — a dataset's oldest-update dot turns
+// amber past this many days. Edit here, no UI for it yet.
+export const DATA_STALENESS_WARN_DAYS = 30;
+
 // Shared bucket keys for attribution charts — kept here (not in
 // lib/data/signups.ts) because chart-theme.ts is imported by client
 // components, and lib/data/* pulls in server-only Supabase code.
