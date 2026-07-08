@@ -25,7 +25,9 @@ function statusLabel(status: SubscriptionStatus): string {
 
 export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
   const [query, setQuery] = useState("");
-  const [tierFilter, setTierFilter] = useState<SubscriptionTier | "all">("all");
+  // Defaults to premium — the customers you usually care about; flip the
+  // dropdown to "All tiers" for everyone.
+  const [tierFilter, setTierFilter] = useState<SubscriptionTier | "all">("premium");
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("signedUpAt");

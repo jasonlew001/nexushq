@@ -18,6 +18,11 @@ export interface PlanLabel {
 export interface StripeMetrics {
   mrrCents: number;
   payingSubscriberCount: number;
+  // Stripe customer IDs with a live (active/past_due) subscription whose
+  // EFFECTIVE price — after discounts — is $0: comped accounts (coaches,
+  // etc). The DB's subscription_tier says "premium" for these, so DB-side
+  // paying counts (funnel, conversion) subtract them via this list.
+  compedCustomerIds: string[];
   planBreakdown: PlanLabel[];
   mrrOverTime: { weekStart: string; mrrCents: number }[];
   // Same lifecycle reconstruction as mrrOverTime, bucketed by calendar
@@ -41,23 +46,45 @@ function planLabel(interval: Stripe.Price.Recurring.Interval, intervalCount: num
   return `${intervalCount} ${interval}${intervalCount > 1 ? "s" : ""}`;
 }
 
-function normalizeToMonthlyCents(
-  unitAmount: number,
-  interval: Stripe.Price.Recurring.Interval,
-  intervalCount: number
-): number {
+function intervalMonths(interval: Stripe.Price.Recurring.Interval, intervalCount: number): number {
   switch (interval) {
     case "year":
-      return unitAmount / (12 * intervalCount);
+      return 12 * intervalCount;
     case "month":
-      return unitAmount / intervalCount;
+      return intervalCount;
     case "week":
-      return (unitAmount * (52 / 12)) / intervalCount;
+      return intervalCount / (52 / 12);
     case "day":
-      return (unitAmount * (365.25 / 12)) / intervalCount;
+      return intervalCount / (365.25 / 12);
     default:
-      return unitAmount;
+      return intervalCount;
   }
+}
+
+// "Paying" is defined by what the customer is actually charged, not the
+// sticker price — a coach on a 100%-off coupon (or a $0 price) has an
+// effective amount of 0 and must not count toward MRR or subscriber
+// counts. percent_off scales the whole price; amount_off is per invoice,
+// so it spreads across the interval's months when normalizing.
+function effectiveMonthlyCents(
+  unitAmount: number,
+  interval: Stripe.Price.Recurring.Interval,
+  intervalCount: number,
+  discounts: Stripe.Subscription["discounts"]
+): number {
+  const months = intervalMonths(interval, intervalCount);
+  let perInvoice = unitAmount;
+
+  for (const d of discounts ?? []) {
+    if (typeof d === "string") continue; // not expanded — can't evaluate, skip
+    // This API version nests the coupon under discount.source.
+    const coupon = d.source?.type === "coupon" ? d.source.coupon : null;
+    if (!coupon || typeof coupon === "string") continue;
+    if (coupon.percent_off != null) perInvoice *= 1 - coupon.percent_off / 100;
+    if (coupon.amount_off != null) perInvoice -= coupon.amount_off;
+  }
+
+  return Math.max(perInvoice, 0) / months;
 }
 
 interface NormalizedSub {
@@ -79,16 +106,17 @@ async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
   for await (const sub of stripe.subscriptions.list({
     status: "all",
     limit: 100,
-    expand: ["data.items.data.price"],
+    expand: ["data.items.data.price", "data.discounts.source.coupon"],
   })) {
     const item = sub.items.data[0];
     const price = item?.price;
     if (!price?.recurring || price.unit_amount == null) continue;
 
-    const monthlyCents = normalizeToMonthlyCents(
+    const monthlyCents = effectiveMonthlyCents(
       price.unit_amount,
       price.recurring.interval,
-      price.recurring.interval_count
+      price.recurring.interval_count,
+      sub.discounts
     );
 
     subs.push({
@@ -110,9 +138,14 @@ async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
 async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
   const subs = await fetchAllSubscriptions();
 
-  // MRR: active + past_due count; trialing excluded (flip here if that
-  // policy changes).
-  const paying = subs.filter((s) => s.status === "active" || s.status === "past_due");
+  // MRR: active + past_due, with a real (post-discount) charge; trialing
+  // excluded, and comped ($0-effective) subs — e.g. coaches — excluded from
+  // both MRR and every subscriber count (flip here if policy changes).
+  const live = subs.filter((s) => s.status === "active" || s.status === "past_due");
+  const paying = live.filter((s) => s.monthlyCents > 0);
+  const compedCustomerIds = Array.from(
+    new Set(live.filter((s) => s.monthlyCents === 0).map((s) => s.customerId))
+  );
   const mrrCents = paying.reduce((sum, s) => sum + s.monthlyCents, 0);
 
   const byLabel = new Map<string, PlanLabel>();
@@ -183,6 +216,7 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
     data: {
       mrrCents: Math.round(mrrCents),
       payingSubscriberCount: paying.length,
+      compedCustomerIds,
       planBreakdown,
       mrrOverTime,
       mrrByMonth,

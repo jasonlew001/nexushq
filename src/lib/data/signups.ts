@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getCustomerRows } from "./customers";
+import { getStripeMetrics } from "./stripe-metrics";
 import { startOfWeekUTC, weeksAgoUTC } from "@/lib/format";
 import { CHART_WEEKS, UNATTRIBUTED, OTHER_SOURCE, NO_ACQ_DATA } from "@/lib/constants";
 import type { AcqSource } from "@/lib/types";
@@ -76,9 +77,25 @@ const ACQ_SOURCE_ORDER: Exclude<AcqSource, null>[] = [
 export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   const rows = await getCustomerRows();
 
+  // Comped accounts (coaches on $0-effective subscriptions) carry
+  // tier='premium' in the DB, so the DB alone over-counts "paying".
+  // Cross-reference Stripe's effective-amount check; if Stripe is
+  // unreachable, degrade to the DB-only definition rather than breaking
+  // every page that renders signup metrics.
+  let compedIds = new Set<string>();
+  try {
+    const stripe = await getStripeMetrics();
+    compedIds = new Set(stripe.data.compedCustomerIds);
+  } catch {
+    // Stripe down — DB-only fallback (comped accounts will count as paying)
+  }
+
   const totalSignups = rows.length;
   const paying = rows.filter(
-    (r) => r.tier === "premium" && (r.status === "active" || r.status === "past_due")
+    (r) =>
+      r.tier === "premium" &&
+      (r.status === "active" || r.status === "past_due") &&
+      !(r.stripeCustomerId && compedIds.has(r.stripeCustomerId))
   );
   const payingSubscribers = paying.length;
 
