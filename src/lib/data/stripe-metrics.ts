@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { startOfWeekUTC, weeksAgoUTC } from "@/lib/format";
-import { CHART_WEEKS, CANCELING_SOON_WINDOW_DAYS } from "@/lib/constants";
+import { CHART_WEEKS, CANCELING_SOON_WINDOW_DAYS, COST_HISTORY_MONTHS } from "@/lib/constants";
 import type { CachedResult } from "@/lib/types";
 
 if (typeof window !== "undefined") {
@@ -20,6 +20,10 @@ export interface StripeMetrics {
   payingSubscriberCount: number;
   planBreakdown: PlanLabel[];
   mrrOverTime: { weekStart: string; mrrCents: number }[];
+  // Same lifecycle reconstruction as mrrOverTime, bucketed by calendar
+  // month (MRR evaluated at each month's end; current month at "now") over
+  // the costs-vs-revenue window. Approximate for the same reasons.
+  mrrByMonth: { month: string; mrrCents: number }[];
   cancelingSoon: {
     subscriptionId: string;
     customerId: string;
@@ -143,6 +147,24 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
   });
   void earliestWeek; // reserved for future exact-window trimming
 
+  // Monthly MRR: evaluate the same lifecycle test at each month's end
+  // (current month at "now" since it hasn't ended yet).
+  const nowDate = new Date();
+  const mrrByMonth = Array.from({ length: COST_HISTORY_MONTHS }, (_, idx) => {
+    const i = COST_HISTORY_MONTHS - 1 - idx;
+    const monthStart = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth() - i, 1));
+    const nextMonthStart = new Date(
+      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1)
+    );
+    const evalSec = Math.min(nextMonthStart.getTime() / 1000, now);
+    const mrrAtMonth = subs.reduce((sum, s) => {
+      const started = s.createdAt <= evalSec;
+      const stillActive = s.endedAt == null || s.endedAt > evalSec;
+      return started && stillActive ? sum + s.monthlyCents : sum;
+    }, 0);
+    return { month: monthStart.toISOString().slice(0, 7), mrrCents: Math.round(mrrAtMonth) };
+  });
+
   const windowEndSec = now + CANCELING_SOON_WINDOW_DAYS * 24 * 60 * 60;
   const cancelingSoon = subs
     .filter(
@@ -163,6 +185,7 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
       payingSubscriberCount: paying.length,
       planBreakdown,
       mrrOverTime,
+      mrrByMonth,
       cancelingSoon,
     },
     fetchedAt: new Date().toISOString(),

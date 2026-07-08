@@ -43,6 +43,11 @@ export interface SignupMetrics {
   // to a full prior week). The action strip's "new this week" is a
   // deliberately different, separate figure: the current in-progress week.
   wow: { current: number; previous: number; deltaPct: number | null };
+  // Same weekly buckets, restricted to customers who are currently paying
+  // (premium + active/past_due) — the "exclude non-paying users" chart
+  // filter. Note: cohort membership is *today's* payment status; a user who
+  // later paid counts in their original signup week.
+  weeklyPayingOnly: WeeklySignupBucket[];
   // Trailing 7 calendar days (UTC), including today's partial day — for the
   // day-bar chart. Independent of the weekly buckets above.
   dailySignups: DailySignupBucket[];
@@ -97,23 +102,35 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     return topUtmSet.has(source) ? source : OTHER_SOURCE;
   }
 
-  // Pass 2: weekly stacked buckets, trailing CHART_WEEKS weeks.
+  // Pass 2: weekly stacked buckets, trailing CHART_WEEKS weeks — built for
+  // the full cohort and (with the same shape) for currently-paying users
+  // only, so the chart's cohort toggle is a data swap, not a re-fetch.
   const earliestWeek = startOfWeekUTC(weeksAgoUTC(CHART_WEEKS - 1));
+  const payingIds = new Set(paying.map((r) => r.id));
   const weekMap = new Map<string, WeeklySignupBucket>();
+  const payingWeekMap = new Map<string, WeeklySignupBucket>();
+
+  function addToBucket(map: Map<string, WeeklySignupBucket>, weekStart: string, sourceKey: string) {
+    let bucket = map.get(weekStart);
+    if (!bucket) {
+      bucket = { weekStart, total: 0, byUtmSource: {} };
+      map.set(weekStart, bucket);
+    }
+    bucket.total += 1;
+    bucket.byUtmSource[sourceKey] = (bucket.byUtmSource[sourceKey] ?? 0) + 1;
+  }
+
   for (const row of rows) {
     const weekStart = startOfWeekUTC(new Date(row.signedUpAt));
     if (weekStart < earliestWeek) continue;
-
-    let bucket = weekMap.get(weekStart);
-    if (!bucket) {
-      bucket = { weekStart, total: 0, byUtmSource: {} };
-      weekMap.set(weekStart, bucket);
-    }
-    bucket.total += 1;
     const key = bucketUtmSource(row.utmSource);
-    bucket.byUtmSource[key] = (bucket.byUtmSource[key] ?? 0) + 1;
+    addToBucket(weekMap, weekStart, key);
+    if (payingIds.has(row.id)) addToBucket(payingWeekMap, weekStart, key);
   }
   const weekly = Array.from(weekMap.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  const weeklyPayingOnly = Array.from(payingWeekMap.values()).sort((a, b) =>
+    a.weekStart.localeCompare(b.weekStart)
+  );
 
   // UTM breakdown — all signups, same bucketing as the weekly stack.
   const utmBreakdownMap = new Map<string, number>();
@@ -191,6 +208,7 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     payingSubscribers,
     signupToPaidConversion: totalSignups > 0 ? payingSubscribers / totalSignups : 0,
     weekly,
+    weeklyPayingOnly,
     byState,
     unknownStateCount,
     wow: { current, previous, deltaPct },

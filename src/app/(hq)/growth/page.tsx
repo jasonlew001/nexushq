@@ -17,7 +17,11 @@ async function GrowthCharts() {
     <div className="stagger space-y-4">
       <Card>
         <SectionLabel>Signups by week — by UTM source</SectionLabel>
-        <SignupsByWeekChart data={signups.weekly} topUtmSources={signups.topUtmSources} />
+        <SignupsByWeekChart
+          data={signups.weekly}
+          payingData={signups.weeklyPayingOnly}
+          topUtmSources={signups.topUtmSources}
+        />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">

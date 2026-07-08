@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -7,9 +8,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
+import { cn } from "@/lib/cn";
 import type { WeeklySignupBucket } from "@/lib/data/signups";
 import {
   CHART_GRID,
@@ -21,78 +22,133 @@ import {
   tooltipLabelStyle,
   tooltipItemStyle,
 } from "./chart-theme";
+import { ToggleChips } from "./toggle-chips";
+
+type Cohort = "all" | "paying";
 
 function shortWeekLabel(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// The chips replace the old passive Legend: same identity information, but
+// clickable to include/exclude a source from the stack. The cohort toggle
+// swaps between all signups and currently-paying users (pre-aggregated
+// server-side — see SignupMetrics.weeklyPayingOnly for semantics).
 export function SignupsByWeekChart({
   data,
+  payingData,
   topUtmSources,
 }: {
   data: WeeklySignupBucket[];
+  /** Same buckets restricted to currently-paying users; enables the cohort toggle. */
+  payingData?: WeeklySignupBucket[];
   topUtmSources: string[];
 }) {
+  const [cohort, setCohort] = useState<Cohort>("all");
+
+  // Series present in EITHER cohort, so chip state survives switching (a
+  // source with zero paying signups keeps its chip rather than vanishing).
+  const allSeriesKeys = useMemo(() => {
+    const candidates = [...topUtmSources, "other", "unattributed"];
+    return candidates.filter(
+      (key) =>
+        data.some((w) => w.byUtmSource[key] > 0) ||
+        (payingData ?? []).some((w) => w.byUtmSource[key] > 0)
+    );
+  }, [data, payingData, topUtmSources]);
+
+  const [activeSeries, setActiveSeries] = useState<Set<string>>(() => new Set(allSeriesKeys));
+
+  function toggleSeries(key: string) {
+    setActiveSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next.size === 0 ? new Set(allSeriesKeys) : next;
+    });
+  }
+
   if (data.length === 0) return null;
 
-  // Stable series order: known top sources first, then other/unattributed —
-  // matches the fixed color assignment so a source's color never shifts.
-  const seriesKeys = [...topUtmSources, "other", "unattributed"].filter((key) =>
-    data.some((week) => week.byUtmSource[key] > 0)
-  );
+  const activeData = cohort === "paying" && payingData ? payingData : data;
+  const visibleKeys = allSeriesKeys.filter((key) => activeSeries.has(key));
+  const lastVisibleKey = visibleKeys.at(-1);
 
-  const rows = data.map((week) => ({
+  const rows = activeData.map((week) => ({
     weekStart: week.weekStart,
     label: shortWeekLabel(week.weekStart),
     ...week.byUtmSource,
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={rows} barCategoryGap="20%">
-        <CartesianGrid stroke={CHART_GRID} strokeDasharray="0" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fill: CHART_TEXT_MUTED, fontSize: 11 }}
-          tickLine={false}
-          axisLine={{ stroke: CHART_GRID }}
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <ToggleChips
+          options={allSeriesKeys.map((key) => ({
+            key,
+            label: utmSourceLabel(key),
+            color: colorForCategory(key, topUtmSources),
+          }))}
+          active={activeSeries}
+          onToggle={toggleSeries}
         />
-        <YAxis
-          tick={{ fill: CHART_TEXT_MUTED, fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-          width={32}
-          allowDecimals={false}
-        />
-        <Tooltip
-          contentStyle={tooltipContentStyle}
-          labelStyle={tooltipLabelStyle}
-          itemStyle={tooltipItemStyle}
-          formatter={(value, name) => [value, utmSourceLabel(String(name))]}
-          cursor={{ fill: "rgba(255,255,255,0.03)" }}
-        />
-        {seriesKeys.length > 1 && (
-          <Legend
-            wrapperStyle={{ fontSize: 11, color: CHART_TEXT_MUTED, paddingTop: 8 }}
-            formatter={(value: string) => utmSourceLabel(value)}
-          />
+        {payingData && (
+          <div className="flex gap-1">
+            {(["all", "paying"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCohort(c)}
+                className={cn(
+                  "whitespace-nowrap rounded-md px-2.5 py-1 text-xs transition-colors",
+                  cohort === c ? "bg-accent/10 text-accent" : "text-faint hover:text-muted"
+                )}
+              >
+                {c === "all" ? "All signups" : "Paying only"}
+              </button>
+            ))}
+          </div>
         )}
-        {seriesKeys.map((key) => (
-          <Bar
-            key={key}
-            dataKey={key}
-            stackId="signups"
-            fill={colorForCategory(key, topUtmSources)}
-            stroke={CHART_SURFACE}
-            strokeWidth={2}
-            maxBarSize={24}
-            radius={
-              key === seriesKeys[seriesKeys.length - 1] ? [4, 4, 0, 0] : [0, 0, 0, 0]
-            }
+      </div>
+
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={rows} barCategoryGap="20%">
+          <CartesianGrid stroke={CHART_GRID} strokeDasharray="0" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: CHART_TEXT_MUTED, fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: CHART_GRID }}
           />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+          <YAxis
+            tick={{ fill: CHART_TEXT_MUTED, fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            width={32}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={tooltipContentStyle}
+            labelStyle={tooltipLabelStyle}
+            itemStyle={tooltipItemStyle}
+            formatter={(value, name) => [value, utmSourceLabel(String(name))]}
+            cursor={{ fill: "rgba(255,255,255,0.03)" }}
+          />
+          {visibleKeys.map((key) => (
+            <Bar
+              key={key}
+              dataKey={key}
+              stackId="signups"
+              fill={colorForCategory(key, topUtmSources)}
+              stroke={CHART_SURFACE}
+              strokeWidth={2}
+              maxBarSize={24}
+              radius={key === lastVisibleKey ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

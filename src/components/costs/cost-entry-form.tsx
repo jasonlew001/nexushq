@@ -23,13 +23,21 @@ export function CostEntryForm() {
       return;
     }
 
+    // State holds the input's native "YYYY-MM"; the DB column is a DATE, so
+    // pin to the first of the month here — never in the input's value, which
+    // must stay "YYYY-MM" or the month picker rejects it and blanks itself.
+    if (cadence === "one_time" && !/^\d{4}-\d{2}$/.test(oneTimeMonth)) {
+      setError("Pick a month for the one-time cost");
+      return;
+    }
+
     startTransition(async () => {
       try {
         await createCost({
           service,
           amountCents: Math.round(dollars * 100),
           cadence,
-          oneTimeMonth: cadence === "one_time" ? oneTimeMonth || null : null,
+          oneTimeMonth: cadence === "one_time" ? `${oneTimeMonth}-01` : null,
           notes: notes || null,
         });
         setService("");
@@ -87,8 +95,10 @@ export function CostEntryForm() {
             required
             type="month"
             value={oneTimeMonth}
-            onChange={(e) => setOneTimeMonth(`${e.target.value}-01`)}
-            className="w-full rounded-md border border-edge bg-surface-2 px-2 py-1.5 text-xs outline-none focus:border-edge-strong"
+            onChange={(e) => setOneTimeMonth(e.target.value)}
+            placeholder="YYYY-MM"
+            pattern="\d{4}-\d{2}"
+            className="w-full rounded-md border border-edge bg-surface-2 px-2 py-1.5 text-xs outline-none [color-scheme:dark] focus:border-edge-strong"
           />
         </div>
       )}

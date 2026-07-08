@@ -2,21 +2,43 @@ import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
+import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { getManualCosts, monthlyBurnCents } from "@/lib/data/costs";
 import { formatCentsWhole, formatPercent } from "@/lib/format";
 import { ANTHROPIC_KEY_ROTATION_CAVEAT } from "@/lib/constants";
 import { AnthropicCostChart } from "@/components/charts/anthropic-cost-chart";
+import {
+  CostsVsRevenueChart,
+  type CostsVsRevenueRow,
+} from "@/components/charts/costs-vs-revenue";
 import { CostsTable } from "./costs-table";
 import { CostEntryForm } from "./cost-entry-form";
 
 export async function CostsPanel() {
-  const [anthropic, manualCosts] = await Promise.all([getAnthropicMetrics(), getManualCosts()]);
+  const [anthropic, stripe, manualCosts] = await Promise.all([
+    getAnthropicMetrics(),
+    getStripeMetrics(),
+    getManualCosts(),
+  ]);
   const { data: metrics } = anthropic;
 
   const now = new Date();
   const monthKey = now.toISOString().slice(0, 7);
   const manualMonthlyCents = Math.round(monthlyBurnCents(manualCosts, monthKey));
   const totalBurnCents = metrics.monthToDateCents + manualMonthlyCents;
+
+  // Per-month rows for costs-vs-revenue. Manual costs are today's active
+  // entries applied to each month (one-times land in their own month) —
+  // there's no cost-history table, so past months reflect current values;
+  // footnoted under the chart. Revenue joins by month key from the Stripe
+  // lifecycle reconstruction.
+  const revenueByMonth = new Map(stripe.data.mrrByMonth.map((m) => [m.month, m.mrrCents]));
+  const costsVsRevenue: CostsVsRevenueRow[] = metrics.monthlyCost.map((m) => ({
+    month: m.month,
+    anthropicCents: m.costCents,
+    manualCents: Math.round(monthlyBurnCents(manualCosts, m.month)),
+    revenueCents: revenueByMonth.get(m.month) ?? 0,
+  }));
 
   const trendPct =
     metrics.previousMonthCents > 0
@@ -49,6 +71,15 @@ export async function CostsPanel() {
           <p className="mt-1 text-xs text-faint">Anthropic MTD + manual monthly-equivalent</p>
         </Card>
       </div>
+
+      <Card>
+        <SectionLabel>Costs vs monthly revenue</SectionLabel>
+        <CostsVsRevenueChart rows={costsVsRevenue} />
+        <p className="mt-3 text-xs text-faint">
+          Revenue is the approximate MRR reconstruction (current prices); manual costs are
+          today&apos;s active entries applied to each month — no cost history is kept.
+        </p>
+      </Card>
 
       <Card>
         <SectionLabel>Anthropic API cost & token usage</SectionLabel>

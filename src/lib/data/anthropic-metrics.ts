@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { fetchCostReport, fetchUsageReport } from "@/lib/anthropic";
+import { COST_HISTORY_MONTHS } from "@/lib/constants";
 import type { CachedResult } from "@/lib/types";
 
 if (typeof window !== "undefined") {
@@ -18,11 +19,19 @@ export interface DailyUsage {
   outputTokens: number;
 }
 
+export interface MonthlyCost {
+  month: string; // YYYY-MM
+  costCents: number;
+}
+
 export interface AnthropicMetrics {
   dailyCost: DailyCost[];
   dailyUsage: DailyUsage[];
   monthToDateCents: number;
   previousMonthCents: number;
+  // Trailing COST_HISTORY_MONTHS calendar months (oldest first, current
+  // month last & partial), zero-filled — feeds the costs-vs-revenue chart.
+  monthlyCost: MonthlyCost[];
 }
 
 function chunkDateRange(start: Date, end: Date, maxDays = 31): { startingAt: string; endingAt: string }[] {
@@ -58,10 +67,13 @@ async function fetchUsageReportChunked(start: Date, end: Date) {
 
 async function fetchAnthropicMetrics(): Promise<CachedResult<AnthropicMetrics>> {
   const now = new Date();
-  // First day of the previous month, UTC — guarantees full coverage of
-  // "this month" + "last month" for the spend-trend comparison, and gives
-  // the daily/weekly cost chart ~2 months of data.
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  // First day of the month COST_HISTORY_MONTHS-1 months back, UTC — covers
+  // the costs-vs-revenue chart's window (which subsumes the old 2-month
+  // window the MTD/prev-month trend needs). Still one cached fetch per hour;
+  // the 31-day-bucket chunker just makes a few more paged requests.
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (COST_HISTORY_MONTHS - 1), 1)
+  );
 
   const [costBuckets, usageBuckets] = await Promise.all([
     fetchCostReportChunked(start, now),
@@ -99,8 +111,20 @@ async function fetchAnthropicMetrics(): Promise<CachedResult<AnthropicMetrics>> 
     .filter((d) => d.date.slice(0, 7) === prevMonthKey)
     .reduce((sum, d) => sum + d.costCents, 0);
 
+  // Zero-filled trailing months, oldest first, current (partial) month last.
+  const monthlyCost: MonthlyCost[] = [];
+  for (let i = COST_HISTORY_MONTHS - 1; i >= 0; i--) {
+    const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
+      .toISOString()
+      .slice(0, 7);
+    const costCents = dailyCost
+      .filter((d) => d.date.slice(0, 7) === month)
+      .reduce((sum, d) => sum + d.costCents, 0);
+    monthlyCost.push({ month, costCents });
+  }
+
   return {
-    data: { dailyCost, dailyUsage, monthToDateCents, previousMonthCents },
+    data: { dailyCost, dailyUsage, monthToDateCents, previousMonthCents, monthlyCost },
     fetchedAt: new Date().toISOString(),
   };
 }

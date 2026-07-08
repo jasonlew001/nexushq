@@ -22,6 +22,10 @@ export const CHART_WEEKS = 12;
 // amber past this many days. Edit here, no UI for it yet.
 export const DATA_STALENESS_WARN_DAYS = 30;
 
+// Trailing calendar months covered by the costs-vs-revenue chart (and the
+// Anthropic cost fetch window that feeds it). Current partial month included.
+export const COST_HISTORY_MONTHS = 6;
+
 // Shared bucket keys for attribution charts — kept here (not in
 // lib/data/signups.ts) because chart-theme.ts is imported by client
 // components, and lib/data/* pulls in server-only Supabase code.
