@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Nav } from "./nav";
 import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
+import { SyncButton } from "./sync-button";
 
 export function Header() {
   return (
@@ -11,10 +12,11 @@ export function Header() {
           Nexus <span className="text-gold">HQ</span>
         </Link>
         <Nav />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
           <Suspense fallback={<RefreshedAtSkeleton />}>
             <RefreshedAt />
           </Suspense>
+          <SyncButton />
         </div>
       </div>
       <div className="hud-scanline h-px w-full" />
