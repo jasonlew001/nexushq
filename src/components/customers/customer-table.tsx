@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Search, Download, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CustomerDetailPanel } from "./customer-detail-panel";
+import { markExported } from "@/actions/exports";
 import { formatCentsWhole, formatDate } from "@/lib/format";
 import type { CustomerRow, SubscriptionStatus, SubscriptionTier } from "@/lib/types";
 
@@ -23,6 +24,41 @@ function statusLabel(status: SubscriptionStatus): string {
   return status.replace("_", " ");
 }
 
+function csvField(value: string | number | null): string {
+  const s = value == null ? "" : String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function buildCsv(rows: CustomerRow[]): string {
+  const header = [
+    "name",
+    "email",
+    "location",
+    "signed_up",
+    "tier",
+    "status",
+    "utm_source",
+    "heard_about_us",
+    "lifetime_revenue_usd",
+  ].join(",");
+
+  const lines = rows.map((c) =>
+    [
+      csvField(c.name),
+      csvField(c.email),
+      csvField(c.cityState),
+      csvField(c.signedUpAt.slice(0, 10)),
+      csvField(c.tier ?? "free"),
+      csvField(c.status),
+      csvField(c.utmSource),
+      csvField(c.acqSource),
+      csvField(c.lifetimeRevenueCents != null ? (c.lifetimeRevenueCents / 100).toFixed(2) : ""),
+    ].join(",")
+  );
+
+  return [header, ...lines].join("\n");
+}
+
 export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
   const [query, setQuery] = useState("");
   // Defaults to premium — the customers you usually care about; flip the
@@ -33,6 +69,8 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
   const [sortKey, setSortKey] = useState<SortKey>("signedUpAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selected, setSelected] = useState<CustomerRow | null>(null);
+  const [hideExported, setHideExported] = useState(false);
+  const [isExporting, startExport] = useTransition();
 
   const sources = useMemo(() => {
     const set = new Set<string>();
@@ -49,6 +87,7 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
       if (tierFilter !== "all" && (c.tier ?? "free") !== tierFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (sourceFilter !== "all" && c.utmSource !== sourceFilter) return false;
+      if (hideExported && c.exportedAt) return false;
       return true;
     });
 
@@ -75,7 +114,32 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
     });
 
     return rows;
-  }, [customers, query, tierFilter, statusFilter, sourceFilter, sortKey, sortDir]);
+  }, [customers, query, tierFilter, statusFilter, sourceFilter, hideExported, sortKey, sortDir]);
+
+  function handleExport() {
+    if (filtered.length === 0) return;
+
+    const csv = buildCsv(filtered);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nexus-customers-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Record who was included so "hide exported" can filter them out of
+    // the next batch. Fire-and-forget after the download starts.
+    const ids = filtered.map((c) => c.id);
+    startExport(async () => {
+      try {
+        await markExported(ids);
+      } catch {
+        // Export tracking failed (e.g. migration not run) — the CSV still
+        // downloaded; nothing actionable client-side.
+      }
+    });
+  }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -147,7 +211,25 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          <input
+            type="checkbox"
+            checked={hideExported}
+            onChange={(e) => setHideExported(e.target.checked)}
+            className="accent-accent"
+          />
+          hide exported
+        </label>
         <span className="ml-auto text-xs text-faint">{filtered.length} of {customers.length}</span>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={filtered.length === 0 || isExporting}
+          className="flex items-center gap-1.5 rounded-md border border-edge bg-surface-2 px-2.5 py-1.5 text-xs text-ink transition-colors hover:border-edge-strong disabled:opacity-50"
+        >
+          <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+          {isExporting ? "Recording…" : `Export CSV (${filtered.length})`}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -168,6 +250,9 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
                 <Th label="Tier" sortableKey="tier" />
                 <Th label="Status" sortableKey="status" />
                 <Th label="Lifetime revenue" sortableKey="lifetimeRevenueCents" />
+                <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted">
+                  Exported
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -198,6 +283,18 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
                   </td>
                   <td className="tnum px-3 py-2">
                     {c.lifetimeRevenueCents != null ? formatCentsWhole(c.lifetimeRevenueCents) : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    {c.exportedAt ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-accent"
+                        title={`Exported ${formatDate(c.exportedAt)}`}
+                      >
+                        <Check className="h-3.5 w-3.5" strokeWidth={2} />
+                      </span>
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

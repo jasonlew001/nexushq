@@ -3,16 +3,31 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
-import { getManualCosts, monthlyBurnCents } from "@/lib/data/costs";
-import { formatCentsWhole, formatPercent } from "@/lib/format";
+import {
+  getManualCosts,
+  monthlyBurnCents,
+  perPersonMonthlyCents,
+  serviceMonthlyBreakdown,
+  PEOPLE,
+  UNASSIGNED,
+} from "@/lib/data/costs";
+import { formatCentsWhole, formatCentsPrecise, formatPercent } from "@/lib/format";
 import { ANTHROPIC_KEY_ROTATION_CAVEAT } from "@/lib/constants";
 import { AnthropicCostChart } from "@/components/charts/anthropic-cost-chart";
 import {
   CostsVsRevenueChart,
   type CostsVsRevenueRow,
 } from "@/components/charts/costs-vs-revenue";
+import { ManualCostsChart } from "@/components/charts/manual-costs-chart";
 import { CostsTable } from "./costs-table";
 import { CostEntryForm } from "./cost-entry-form";
+
+const PERSON_LABEL: Record<string, string> = {
+  nick: "Nick",
+  jason: "Jason",
+  kamp: "Kamp",
+  [UNASSIGNED]: "Unassigned",
+};
 
 export async function CostsPanel() {
   const [anthropic, stripe, manualCosts] = await Promise.all([
@@ -40,6 +55,26 @@ export async function CostsPanel() {
     revenueCents: revenueByMonth.get(m.month) ?? 0,
   }));
 
+  // Manual costs by service, per month, over the same window — plus a
+  // stable service order (largest current contributor first) for colors.
+  const monthKeys = metrics.monthlyCost.map((m) => m.month);
+  const manualByService = serviceMonthlyBreakdown(manualCosts, monthKeys);
+  const serviceTotals = new Map<string, number>();
+  for (const row of manualByService) {
+    for (const [service, cents] of Object.entries(row.byService)) {
+      serviceTotals.set(service, (serviceTotals.get(service) ?? 0) + cents);
+    }
+  }
+  const services = Array.from(serviceTotals.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([service]) => service);
+
+  // Who fronts what this month (combos split evenly).
+  const perPerson = perPersonMonthlyCents(manualCosts, monthKey);
+  const perPersonEntries = [...PEOPLE, UNASSIGNED]
+    .filter((p) => (perPerson[p] ?? 0) > 0)
+    .map((p) => ({ person: p, cents: Math.round(perPerson[p]) }));
+
   const trendPct =
     metrics.previousMonthCents > 0
       ? (metrics.monthToDateCents - metrics.previousMonthCents) / metrics.previousMonthCents
@@ -62,7 +97,14 @@ export async function CostsPanel() {
         <Card>
           <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">Manual costs (monthly-equiv.)</p>
           <p className="tnum text-xl font-semibold">{formatCentsWhole(manualMonthlyCents)}</p>
-          <Badge tone="neutral">manual</Badge>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Badge tone="neutral">manual</Badge>
+            {perPersonEntries.map(({ person, cents }) => (
+              <span key={person} className="tnum font-mono text-xs text-muted">
+                {PERSON_LABEL[person]} {formatCentsPrecise(cents)}
+              </span>
+            ))}
+          </div>
         </Card>
 
         <Card>
@@ -78,6 +120,15 @@ export async function CostsPanel() {
         <p className="mt-3 text-xs text-faint">
           Revenue is the approximate MRR reconstruction (current prices); manual costs are
           today&apos;s active entries applied to each month — no cost history is kept.
+        </p>
+      </Card>
+
+      <Card>
+        <SectionLabel>Manual costs by service</SectionLabel>
+        <ManualCostsChart rows={manualByService} services={services} />
+        <p className="mt-3 text-xs text-faint">
+          Today&apos;s entries applied at current values — one-time costs land in their own
+          month; no cost history is kept.
         </p>
       </Card>
 

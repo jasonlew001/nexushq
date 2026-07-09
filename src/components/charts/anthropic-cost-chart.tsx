@@ -25,14 +25,20 @@ import {
   tooltipItemStyle,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
+import { RangeTabs } from "./range-tabs";
 import type { DailyCost, DailyUsage } from "@/lib/data/anthropic-metrics";
 
 type Granularity = "daily" | "weekly";
 
-// The data layer fetches COST_HISTORY_MONTHS (~6 months) of daily buckets
-// for the costs-vs-revenue chart; ~180 daily bars is unreadable here, so
-// the daily view trims to this trailing window. Weekly shows everything.
-const DAILY_VIEW_DAYS = 60;
+// The data layer fetches COST_HISTORY_MONTHS (~12 months) of daily buckets
+// for the costs-vs-revenue chart; hundreds of daily bars is unreadable
+// here, so the daily view trims to a selectable trailing window. Weekly
+// shows everything.
+const DAILY_RANGES = [
+  { key: "30", label: "30d" },
+  { key: "60", label: "60d" },
+  { key: "90", label: "90d" },
+] as const;
 
 const TOKEN_SERIES = [
   { key: "inputTokens", label: "Input", color: CATEGORICAL[0] },
@@ -55,15 +61,15 @@ function bucketKey(dateStr: string, granularity: Granularity): string {
   return startOfWeekUTC(new Date(`${dateStr}T00:00:00Z`));
 }
 
-function dailyCutoff(granularity: Granularity): string {
+function dailyCutoff(granularity: Granularity, days: number): string {
   if (granularity !== "daily") return "";
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() - DAILY_VIEW_DAYS);
+  d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
 }
 
-function aggregateCost(data: DailyCost[], granularity: Granularity) {
-  const cutoff = dailyCutoff(granularity);
+function aggregateCost(data: DailyCost[], granularity: Granularity, days: number) {
+  const cutoff = dailyCutoff(granularity, days);
   const map = new Map<string, number>();
   for (const d of data) {
     if (d.date < cutoff) continue;
@@ -75,8 +81,8 @@ function aggregateCost(data: DailyCost[], granularity: Granularity) {
     .map(([date, costCents]) => ({ date, label: shortDateLabel(date), costDollars: costCents / 100 }));
 }
 
-function aggregateUsage(data: DailyUsage[], granularity: Granularity) {
-  const cutoff = dailyCutoff(granularity);
+function aggregateUsage(data: DailyUsage[], granularity: Granularity, days: number) {
+  const cutoff = dailyCutoff(granularity, days);
   const map = new Map<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number }>();
   for (const d of data) {
     if (d.date < cutoff) continue;
@@ -100,12 +106,20 @@ export function AnthropicCostChart({
   dailyUsage: DailyUsage[];
 }) {
   const [granularity, setGranularity] = useState<Granularity>("daily");
+  const [dailyRange, setDailyRange] = useState<(typeof DAILY_RANGES)[number]["key"]>("60");
   const [activeTokenSeries, setActiveTokenSeries] = useState<Set<string>>(
     new Set(TOKEN_SERIES.map((s) => s.key))
   );
 
-  const costRows = useMemo(() => aggregateCost(dailyCost, granularity), [dailyCost, granularity]);
-  const usageRows = useMemo(() => aggregateUsage(dailyUsage, granularity), [dailyUsage, granularity]);
+  const days = Number(dailyRange);
+  const costRows = useMemo(
+    () => aggregateCost(dailyCost, granularity, days),
+    [dailyCost, granularity, days]
+  );
+  const usageRows = useMemo(
+    () => aggregateUsage(dailyUsage, granularity, days),
+    [dailyUsage, granularity, days]
+  );
 
   function toggleTokenSeries(key: string) {
     setActiveTokenSeries((prev) => {
@@ -121,27 +135,32 @@ export function AnthropicCostChart({
 
   return (
     <div>
-      <div className="mb-3 flex justify-end gap-1">
-        {(["daily", "weekly"] as const).map((g) => (
-          <button
-            key={g}
-            onClick={() => setGranularity(g)}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs capitalize transition-colors",
-              granularity === g
-                ? "bg-accent/10 text-accent"
-                : "text-faint hover:text-muted"
-            )}
-          >
-            {g}
-          </button>
-        ))}
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+        {granularity === "daily" && (
+          <RangeTabs options={DAILY_RANGES} active={dailyRange} onChange={setDailyRange} />
+        )}
+        <div className="flex gap-1">
+          {(["daily", "weekly"] as const).map((g) => (
+            <button
+              key={g}
+              onClick={() => setGranularity(g)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs capitalize transition-colors",
+                granularity === g
+                  ? "bg-accent/10 text-accent"
+                  : "text-faint hover:text-muted"
+              )}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <p className="mb-2 text-xs text-muted">
-            Cost (USD{granularity === "daily" ? `, last ${DAILY_VIEW_DAYS} days` : ""})
+            Cost (USD{granularity === "daily" ? `, last ${days} days` : ""})
           </p>
           <ResponsiveContainer width="100%" height={180}>
             <ComposedChart data={costRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>

@@ -1,12 +1,19 @@
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCustomerRows, attachLifetimeRevenue } from "@/lib/data/customers";
+import { getCustomerRows, attachLifetimeRevenue, attachExportedAt } from "@/lib/data/customers";
 import { getLifetimeRevenue } from "@/lib/data/stripe-metrics";
+import { getExportedUsers } from "@/lib/data/exports";
 import { CustomerTable } from "./customer-table";
 
 export async function CustomerSection() {
-  const [rows, revenue] = await Promise.all([getCustomerRows(), getLifetimeRevenue()]);
-  const enriched = attachLifetimeRevenue(rows, revenue.data);
+  const [rows, revenue, exported] = await Promise.all([
+    getCustomerRows(),
+    getLifetimeRevenue(),
+    // Degrade gracefully if migration 002 hasn't been run yet — the table
+    // renders without export tracking rather than erroring the page.
+    getExportedUsers().catch(() => new Map<string, string>()),
+  ]);
+  const enriched = attachExportedAt(attachLifetimeRevenue(rows, revenue.data), exported);
 
   return (
     <Card>

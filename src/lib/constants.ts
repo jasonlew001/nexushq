@@ -15,16 +15,18 @@ export const ANTHROPIC_KEY_ROTATION_CAVEAT =
 // Canceling/expiring-soon window for the action strip.
 export const CANCELING_SOON_WINDOW_DAYS = 14;
 
-// How many trailing weeks the signups/MRR-over-time charts cover.
-export const CHART_WEEKS = 12;
+// Widest window the weekly charts can show (range tabs slice client-side:
+// 4/12/26 weeks) — the data layer always computes the full window.
+export const CHART_WEEKS = 26;
 
 // System-strip staleness threshold — a dataset's oldest-update dot turns
 // amber past this many days. Edit here, no UI for it yet.
 export const DATA_STALENESS_WARN_DAYS = 30;
 
-// Trailing calendar months covered by the costs-vs-revenue chart (and the
-// Anthropic cost fetch window that feeds it). Current partial month included.
-export const COST_HISTORY_MONTHS = 6;
+// Widest window the monthly cost/revenue charts can show (range tabs slice
+// client-side: 3/6/12 months) and the Anthropic cost fetch window that
+// feeds them. Current partial month included.
+export const COST_HISTORY_MONTHS = 12;
 
 // Shared bucket keys for attribution charts — kept here (not in
 // lib/data/signups.ts) because chart-theme.ts is imported by client
@@ -32,3 +34,9 @@ export const COST_HISTORY_MONTHS = 6;
 export const UNATTRIBUTED = "unattributed";
 export const OTHER_SOURCE = "other";
 export const NO_ACQ_DATA = "no_data";
+
+// Manual-cost allocation — client-safe home for the same reason as above
+// (the cost entry form is a client component).
+export const PEOPLE = ["nick", "jason", "kamp"] as const;
+export type Person = (typeof PEOPLE)[number];
+export const UNASSIGNED = "unassigned";

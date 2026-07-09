@@ -23,8 +23,15 @@ import {
   tooltipItemStyle,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
+import { RangeTabs } from "./range-tabs";
 
 type Cohort = "all" | "paying";
+
+const RANGES = [
+  { key: "4", label: "4w" },
+  { key: "12", label: "12w" },
+  { key: "26", label: "26w" },
+] as const;
 
 function shortWeekLabel(iso: string): string {
   const d = new Date(iso);
@@ -46,6 +53,7 @@ export function SignupsByWeekChart({
   topUtmSources: string[];
 }) {
   const [cohort, setCohort] = useState<Cohort>("all");
+  const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("12");
 
   // Series present in EITHER cohort, so chip state survives switching (a
   // source with zero paying signups keeps its chip rather than vanishing).
@@ -75,7 +83,7 @@ export function SignupsByWeekChart({
   const visibleKeys = allSeriesKeys.filter((key) => activeSeries.has(key));
   const lastVisibleKey = visibleKeys.at(-1);
 
-  const rows = activeData.map((week) => ({
+  const rows = activeData.slice(-Number(range)).map((week) => ({
     weekStart: week.weekStart,
     label: shortWeekLabel(week.weekStart),
     ...week.byUtmSource,
@@ -93,23 +101,26 @@ export function SignupsByWeekChart({
           active={activeSeries}
           onToggle={toggleSeries}
         />
-        {payingData && (
-          <div className="flex gap-1">
-            {(["all", "paying"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCohort(c)}
-                className={cn(
-                  "whitespace-nowrap rounded-md px-2.5 py-1 text-xs transition-colors",
-                  cohort === c ? "bg-accent/10 text-accent" : "text-faint hover:text-muted"
-                )}
-              >
-                {c === "all" ? "All signups" : "Paying only"}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {payingData && (
+            <div className="flex gap-1">
+              {(["all", "paying"] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCohort(c)}
+                  className={cn(
+                    "whitespace-nowrap rounded-md px-2.5 py-1 text-xs transition-colors",
+                    cohort === c ? "bg-accent/10 text-accent" : "text-faint hover:text-muted"
+                  )}
+                >
+                  {c === "all" ? "All signups" : "Paying only"}
+                </button>
+              ))}
+            </div>
+          )}
+          <RangeTabs options={RANGES} active={range} onChange={setRange} />
+        </div>
       </div>
 
       <ResponsiveContainer width="100%" height={240}>

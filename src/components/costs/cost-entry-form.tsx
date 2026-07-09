@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { createCost } from "@/actions/costs";
+import { PEOPLE, type Person } from "@/lib/constants";
 import type { Cadence } from "@/lib/data/costs";
+
+const PERSON_LABEL: Record<Person, string> = {
+  nick: "Nick",
+  jason: "Jason",
+  kamp: "Kamp",
+};
 
 export function CostEntryForm() {
   const [service, setService] = useState("");
@@ -10,8 +17,15 @@ export function CostEntryForm() {
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [oneTimeMonth, setOneTimeMonth] = useState("");
   const [notes, setNotes] = useState("");
+  const [paidBy, setPaidBy] = useState<Person[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function togglePerson(person: Person) {
+    setPaidBy((prev) =>
+      prev.includes(person) ? prev.filter((p) => p !== person) : [...prev, person]
+    );
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,12 +53,14 @@ export function CostEntryForm() {
           cadence,
           oneTimeMonth: cadence === "one_time" ? `${oneTimeMonth}-01` : null,
           notes: notes || null,
+          paidBy,
         });
         setService("");
         setAmount("");
         setCadence("monthly");
         setOneTimeMonth("");
         setNotes("");
+        setPaidBy([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to add cost");
       }
@@ -102,6 +118,22 @@ export function CostEntryForm() {
           />
         </div>
       )}
+      <div>
+        <label className="mb-1 block text-[10px] uppercase tracking-wider text-faint">Paid by</label>
+        <div className="flex gap-2 py-1.5">
+          {PEOPLE.map((person) => (
+            <label key={person} className="flex items-center gap-1 text-xs text-muted">
+              <input
+                type="checkbox"
+                checked={paidBy.includes(person)}
+                onChange={() => togglePerson(person)}
+                className="accent-accent"
+              />
+              {PERSON_LABEL[person]}
+            </label>
+          ))}
+        </div>
+      </div>
       <div className="min-w-[140px] flex-1">
         <label className="mb-1 block text-[10px] uppercase tracking-wider text-faint">Notes</label>
         <input

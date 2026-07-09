@@ -23,6 +23,7 @@ import {
   tooltipItemStyle,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
+import { RangeTabs } from "./range-tabs";
 
 export interface CostsVsRevenueRow {
   month: string; // YYYY-MM
@@ -35,6 +36,12 @@ const SERIES = [
   { key: "anthropic", label: "Anthropic", color: CATEGORICAL[0] },
   { key: "manual", label: "Manual costs", color: NULL_GRAY },
   { key: "revenue", label: "Revenue (MRR)", color: CHART_GOLD },
+] as const;
+
+const RANGES = [
+  { key: "3", label: "3m" },
+  { key: "6", label: "6m" },
+  { key: "12", label: "12m" },
 ] as const;
 
 function monthLabel(month: string, isCurrent: boolean): string {
@@ -51,17 +58,18 @@ function monthLabel(month: string, isCurrent: boolean): string {
 // server-only data layer).
 export function CostsVsRevenueChart({ rows }: { rows: CostsVsRevenueRow[] }) {
   const [active, setActive] = useState<Set<string>>(new Set(SERIES.map((s) => s.key)));
+  const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("6");
 
   const currentMonth = rows.at(-1)?.month;
   const chartRows = useMemo(
     () =>
-      rows.map((r) => ({
+      rows.slice(-Number(range)).map((r) => ({
         label: monthLabel(r.month, r.month === currentMonth),
         anthropic: r.anthropicCents / 100,
         manual: r.manualCents / 100,
         revenue: r.revenueCents / 100,
       })),
-    [rows, currentMonth]
+    [rows, range, currentMonth]
   );
 
   function toggle(key: string) {
@@ -76,12 +84,13 @@ export function CostsVsRevenueChart({ rows }: { rows: CostsVsRevenueRow[] }) {
 
   return (
     <div>
-      <div className="mb-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <ToggleChips
           options={SERIES.map((s) => ({ key: s.key, label: s.label, color: s.color }))}
           active={active}
           onToggle={toggle}
         />
+        <RangeTabs options={RANGES} active={range} onChange={setRange} />
       </div>
 
       <ResponsiveContainer width="100%" height={240}>

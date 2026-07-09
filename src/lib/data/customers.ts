@@ -46,9 +46,19 @@ export const getCustomerRows = cache(async (): Promise<CustomerRow[]> => {
       stripeCustomerId: p.stripe_customer_id,
       lifetimeRevenueCents: null,
       isPreTracking: new Date(signedUpAt).getTime() < trackingStart && hasNoAttribution,
+      exportedAt: null,
     };
   });
 });
+
+export function attachExportedAt(
+  rows: CustomerRow[],
+  exportedByUserId: Map<string, string>
+): CustomerRow[] {
+  return rows.map((row) =>
+    exportedByUserId.has(row.id) ? { ...row, exportedAt: exportedByUserId.get(row.id)! } : row
+  );
+}
 
 export function attachLifetimeRevenue(
   rows: CustomerRow[],

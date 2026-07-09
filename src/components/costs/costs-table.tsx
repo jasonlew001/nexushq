@@ -13,6 +13,12 @@ const CADENCE_LABEL: Record<ManualCost["cadence"], string> = {
   one_time: "one-time",
 };
 
+const PERSON_LABEL: Record<string, string> = {
+  nick: "Nick",
+  jason: "Jason",
+  kamp: "Kamp",
+};
+
 export function CostsTable({ costs }: { costs: ManualCost[] }) {
   const [isPending, startTransition] = useTransition();
 
@@ -30,6 +36,11 @@ export function CostsTable({ costs }: { costs: ManualCost[] }) {
                 {cost.service}
               </p>
               <Badge tone="neutral">manual</Badge>
+              {cost.paidBy.length > 0 && (
+                <Badge tone="gold">
+                  {cost.paidBy.map((p) => PERSON_LABEL[p] ?? p).join(" + ")}
+                </Badge>
+              )}
             </div>
             {cost.notes && <p className="truncate text-xs text-faint">{cost.notes}</p>}
           </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireFounder } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import type { Cadence } from "@/lib/data/costs";
+import { PEOPLE, type Cadence, type Person } from "@/lib/data/costs";
 
 // The only write path in the app. Every action re-checks requireFounder()
 // even though the DB's RLS policies (public.is_founder()) enforce the same
@@ -16,6 +16,7 @@ export interface CostInput {
   cadence: Cadence;
   oneTimeMonth?: string | null;
   notes?: string | null;
+  paidBy?: Person[];
 }
 
 function validateCreate(input: CostInput) {
@@ -34,6 +35,9 @@ function validateCreate(input: CostInput) {
   if (input.notes && input.notes.length > 500) {
     throw new Error("Notes must be 500 characters or fewer");
   }
+  if (input.paidBy?.some((p) => !PEOPLE.includes(p))) {
+    throw new Error("Unknown person in paid_by");
+  }
 }
 
 export async function createCost(input: CostInput): Promise<void> {
@@ -47,6 +51,7 @@ export async function createCost(input: CostInput): Promise<void> {
     cadence: input.cadence,
     one_time_month: input.oneTimeMonth ?? null,
     notes: input.notes?.trim() || null,
+    paid_by: input.paidBy ?? [],
   });
 
   if (error) throw new Error(`Failed to create cost: ${error.message}`);

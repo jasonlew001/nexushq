@@ -73,6 +73,9 @@ export interface CustomerRow {
   stripeCustomerId: string | null;
   lifetimeRevenueCents: number | null;
   isPreTracking: boolean;
+  // When this user last appeared in a customer CSV export (hq_customer_exports);
+  // null = never exported. Decorated in customer-section only.
+  exportedAt: string | null;
 }
 
 export interface CachedResult<T> {
