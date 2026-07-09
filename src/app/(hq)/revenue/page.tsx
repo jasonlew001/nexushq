@@ -9,10 +9,15 @@ import { getCustomerRows } from "@/lib/data/customers";
 import { MrrOverTimeChart } from "@/components/charts/mrr-over-time";
 import { ReferralTable, ReferralTableSkeleton } from "@/components/referral-table";
 import { TierDistributionChart } from "@/components/charts/tier-distribution";
-import { formatCentsWhole, formatDate } from "@/lib/format";
+import { formatCentsWhole, formatDate, formatPercent } from "@/lib/format";
 import { Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+function months(days: number | null): string {
+  if (days == null) return "—";
+  return `${(days / 30.44).toFixed(1)} mo`;
+}
 
 async function RevenueSections() {
   const [stripe, customers] = await Promise.all([getStripeMetrics(), getCustomerRows()]);
@@ -64,6 +69,69 @@ async function RevenueSections() {
         <p className="mt-2 text-xs text-faint">
           Reconstructed from subscription lifecycles at current prices — plan changes are
           attributed to today&apos;s price.
+        </p>
+      </Card>
+
+      <Card>
+        <SectionLabel>Retention</SectionLabel>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+              Renewal rate (1st → 2nd period)
+            </p>
+            <p className="tnum font-mono text-2xl font-semibold text-accent">
+              {metrics.retention.renewalRate != null
+                ? formatPercent(metrics.retention.renewalRate)
+                : "—"}
+            </p>
+            <p className="mt-1 font-mono text-xs text-faint">
+              {metrics.retention.renewed} of {metrics.retention.renewalEligible} eligible
+            </p>
+            {metrics.retention.byPlan.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {metrics.retention.byPlan.map((plan) => (
+                  <div key={plan.label} className="flex justify-between font-mono text-xs">
+                    <span className="text-muted">{plan.label}</span>
+                    <span className="tnum">
+                      {plan.rate != null ? formatPercent(plan.rate) : "—"}{" "}
+                      <span className="text-faint">
+                        ({plan.renewed}/{plan.eligible})
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+              Avg shelf life (ended subs)
+            </p>
+            <p className="tnum font-mono text-2xl font-semibold">
+              {months(metrics.retention.avgEndedLifetimeDays)}
+            </p>
+            <p className="mt-1 font-mono text-xs text-faint">
+              {metrics.retention.endedCount} completed subscription
+              {metrics.retention.endedCount === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+              Avg tenure (still active)
+            </p>
+            <p className="tnum font-mono text-2xl font-semibold">
+              {months(metrics.retention.avgActiveTenureDays)}
+            </p>
+            <p className="mt-1 font-mono text-xs text-faint">
+              {metrics.retention.activeCount} active — still accruing, kept separate from
+              ended
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-faint">
+          Paying subscriptions only (comped/$0 excluded). A sub counts as renewed if it
+          survived past its first billing period (+3-day grace); shelf life is from
+          subscription start to end.
         </p>
       </Card>
 

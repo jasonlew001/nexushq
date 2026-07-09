@@ -15,6 +15,29 @@ export interface PlanLabel {
   subscriberCount: number;
 }
 
+export interface PlanRenewal {
+  label: string;
+  eligible: number;
+  renewed: number;
+  rate: number | null;
+}
+
+export interface RetentionMetrics {
+  // Renewal: of paying subs whose FIRST billing period has ended, how many
+  // made it into a second period (didn't end at/before the first renewal).
+  renewalEligible: number;
+  renewed: number;
+  renewalRate: number | null;
+  byPlan: PlanRenewal[];
+  // Shelf life, reported honestly as two populations: ended subs have a
+  // complete lifetime; active subs are still accruing (censored), so their
+  // tenure is shown separately rather than blended into a misleading avg.
+  endedCount: number;
+  avgEndedLifetimeDays: number | null;
+  activeCount: number;
+  avgActiveTenureDays: number | null;
+}
+
 export interface StripeMetrics {
   mrrCents: number;
   payingSubscriberCount: number;
@@ -29,6 +52,7 @@ export interface StripeMetrics {
   // month (MRR evaluated at each month's end; current month at "now") over
   // the costs-vs-revenue window. Approximate for the same reasons.
   mrrByMonth: { month: string; mrrCents: number }[];
+  retention: RetentionMetrics;
   cancelingSoon: {
     subscriptionId: string;
     customerId: string;
@@ -97,6 +121,7 @@ interface NormalizedSub {
   endedAt: number | null;
   monthlyCents: number;
   label: string;
+  billingMonths: number; // interval length in calendar months (1 / 6 / 12)
 }
 
 async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
@@ -129,6 +154,7 @@ async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
       endedAt: sub.ended_at,
       monthlyCents,
       label: planLabel(price.recurring.interval, price.recurring.interval_count),
+      billingMonths: intervalMonths(price.recurring.interval, price.recurring.interval_count),
     });
   }
 
@@ -198,6 +224,68 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
     return { month: monthStart.toISOString().slice(0, 7), mrrCents: Math.round(mrrAtMonth) };
   });
 
+  // Retention — computed over every sub that ever actually charged money
+  // (effective amount > 0; comped coach subs excluded), any status.
+  //
+  // Renewal: a sub is "eligible" once its first billing period has ended
+  // (created + billingMonths calendar months, with a 3-day grace for
+  // payment retries); it "renewed" if it didn't end at/before that
+  // boundary. Fractional-month billingMonths can't occur with the current
+  // plans (1/6/12) but would round via date math anyway.
+  const GRACE_SEC = 3 * 24 * 60 * 60;
+  function firstRenewalSec(sub: NormalizedSub): number {
+    const d = new Date(sub.createdAt * 1000);
+    d.setUTCMonth(d.getUTCMonth() + sub.billingMonths);
+    return d.getTime() / 1000;
+  }
+
+  const everPaying = subs.filter((s) => s.monthlyCents > 0);
+  const byPlanAgg = new Map<string, { eligible: number; renewed: number }>();
+  let renewalEligible = 0;
+  let renewed = 0;
+
+  for (const sub of everPaying) {
+    const boundary = firstRenewalSec(sub);
+    if (boundary > now) continue; // first period still in progress
+    renewalEligible += 1;
+    const didRenew = sub.endedAt == null || sub.endedAt > boundary + GRACE_SEC;
+    if (didRenew) renewed += 1;
+
+    const plan = byPlanAgg.get(sub.label) ?? { eligible: 0, renewed: 0 };
+    plan.eligible += 1;
+    if (didRenew) plan.renewed += 1;
+    byPlanAgg.set(sub.label, plan);
+  }
+
+  const byPlan: PlanRenewal[] = Array.from(byPlanAgg.entries())
+    .map(([label, p]) => ({
+      label,
+      eligible: p.eligible,
+      renewed: p.renewed,
+      rate: p.eligible > 0 ? p.renewed / p.eligible : null,
+    }))
+    .sort((a, b) => b.eligible - a.eligible);
+
+  // Shelf life: complete lifetimes for ended subs; running tenure for
+  // still-active ones (kept separate — blending censored data understates).
+  const ended = everPaying.filter((s) => s.endedAt != null);
+  const activeNow = everPaying.filter((s) => s.status === "active" || s.status === "past_due");
+  const avg = (values: number[]) =>
+    values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  const avgEndedLifetimeDays = avg(ended.map((s) => (s.endedAt! - s.createdAt) / 86_400));
+  const avgActiveTenureDays = avg(activeNow.map((s) => (now - s.createdAt) / 86_400));
+
+  const retention: RetentionMetrics = {
+    renewalEligible,
+    renewed,
+    renewalRate: renewalEligible > 0 ? renewed / renewalEligible : null,
+    byPlan,
+    endedCount: ended.length,
+    avgEndedLifetimeDays,
+    activeCount: activeNow.length,
+    avgActiveTenureDays,
+  };
+
   const windowEndSec = now + CANCELING_SOON_WINDOW_DAYS * 24 * 60 * 60;
   const cancelingSoon = subs
     .filter(
@@ -220,6 +308,7 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
       planBreakdown,
       mrrOverTime,
       mrrByMonth,
+      retention,
       cancelingSoon,
     },
     fetchedAt: new Date().toISOString(),
