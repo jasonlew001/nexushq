@@ -40,3 +40,6 @@ export const NO_ACQ_DATA = "no_data";
 export const PEOPLE = ["nick", "jason", "kamp"] as const;
 export type Person = (typeof PEOPLE)[number];
 export const UNASSIGNED = "unassigned";
+
+// Coaches get this share of the FIRST payment made with their referral code.
+export const COACH_REFERRAL_CUT = 0.25;

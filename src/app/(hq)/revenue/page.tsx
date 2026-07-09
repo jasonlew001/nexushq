@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { getCustomerRows } from "@/lib/data/customers";
 import { MrrOverTimeChart } from "@/components/charts/mrr-over-time";
+import { ReferralTable, ReferralTableSkeleton } from "@/components/referral-table";
 import { TierDistributionChart } from "@/components/charts/tier-distribution";
 import { formatCentsWhole, formatDate } from "@/lib/format";
 import { Clock } from "lucide-react";
@@ -116,6 +117,12 @@ export default async function RevenuePage() {
       >
         <RevenueSections />
       </Suspense>
+
+      <div className="mt-4">
+        <Suspense fallback={<ReferralTableSkeleton />}>
+          <ReferralTable />
+        </Suspense>
+      </div>
     </PageShell>
   );
 }

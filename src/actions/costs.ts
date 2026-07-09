@@ -58,6 +58,27 @@ export async function createCost(input: CostInput): Promise<void> {
   revalidatePath("/");
 }
 
+export async function updateCost(id: string, input: CostInput): Promise<void> {
+  await requireFounder();
+  validateCreate(input);
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from("hq_manual_costs")
+    .update({
+      service: input.service.trim(),
+      amount_cents: input.amountCents,
+      cadence: input.cadence,
+      one_time_month: input.cadence === "one_time" ? input.oneTimeMonth ?? null : null,
+      notes: input.notes?.trim() || null,
+      paid_by: input.paidBy ?? [],
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(`Failed to update cost: ${error.message}`);
+  revalidatePath("/");
+}
+
 export async function setCostActive(id: string, isActive: boolean): Promise<void> {
   await requireFounder();
   const supabase = createSupabaseServerClient();
