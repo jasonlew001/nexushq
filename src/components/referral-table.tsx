@@ -54,19 +54,19 @@ export async function ReferralTable() {
                 <tr key={c.code} className="border-b border-edge transition-colors hover:bg-surface-2">
                   <td className="px-3 py-2">
                     <span className="flex items-center gap-2">
-                      <span className="font-mono font-medium">{c.code}</span>
+                      <span className="font-medium">{c.code}</span>
                       {!c.active && <Badge tone="neutral">inactive</Badge>}
                     </span>
                   </td>
-                  <td className="tnum px-3 py-2 text-right font-mono">{c.timesRedeemed}</td>
-                  <td className="tnum px-3 py-2 text-right font-mono">{c.customerCount}</td>
-                  <td className="tnum px-3 py-2 text-right font-mono">
+                  <td className="tnum px-3 py-2 text-right">{c.timesRedeemed}</td>
+                  <td className="tnum px-3 py-2 text-right">{c.customerCount}</td>
+                  <td className="tnum px-3 py-2 text-right">
                     {formatCentsPrecise(c.firstPurchaseCents)}
                   </td>
-                  <td className="tnum px-3 py-2 text-right font-mono text-gold">
+                  <td className="tnum px-3 py-2 text-right text-gold">
                     {formatCentsPrecise(c.coachCutCents)}
                   </td>
-                  <td className="tnum px-3 py-2 text-right font-mono">
+                  <td className="tnum px-3 py-2 text-right">
                     {formatCentsPrecise(c.referredLifetimeCents)}
                   </td>
                 </tr>

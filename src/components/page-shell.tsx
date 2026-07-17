@@ -1,8 +1,5 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
-// Detail-page wrapper: back link + title + the zoom-in entrance that makes
-// navigating from an overview card feel like zooming into the section.
+// Detail-page wrapper: title + description above the section content.
+// Navigation lives in the sidebar now, so no back-link here.
 export function PageShell({
   title,
   description,
@@ -13,16 +10,10 @@ export function PageShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="motion-safe:animate-zoom-in">
+    <div>
       <div className="mb-5">
-        <Link
-          href="/"
-          className="mb-2 inline-flex items-center gap-1 text-xs text-faint transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="h-3 w-3" /> Overview
-        </Link>
-        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        {description && <p className="mt-1 text-[13px] text-muted">{description}</p>}
       </div>
       {children}
     </div>

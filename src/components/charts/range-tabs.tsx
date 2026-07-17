@@ -27,7 +27,7 @@ export function RangeTabs<K extends string>({
           type="button"
           onClick={() => onChange(opt.key)}
           className={cn(
-            "whitespace-nowrap rounded-md px-2.5 py-1 font-mono text-xs transition-colors",
+            "whitespace-nowrap rounded-md px-2.5 py-1 text-xs transition-colors",
             active === opt.key ? "bg-accent/10 text-accent" : "text-faint hover:text-muted"
           )}
         >

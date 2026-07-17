@@ -18,7 +18,7 @@ export function AttributionSplitBar({ tracked, unknown }: AttributionSplit) {
         <div className="bg-accent" style={{ width: `${trackedPct}%` }} />
         <div className="bg-faint/40" style={{ width: `${100 - trackedPct}%` }} />
       </div>
-      <div className="mt-2 flex justify-between font-mono text-[11px] text-muted">
+      <div className="mt-2 flex justify-between text-[11px] text-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
           {tracked} tracked

@@ -143,7 +143,7 @@ export function ManualCostsChart({
         </ResponsiveContainer>
 
         <div className="space-y-1.5 self-center">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-faint">
+          <p className="text-[10px] uppercase tracking-wider text-faint">
             This month (monthly-equiv.)
           </p>
           {visibleServices.map((service) => (
@@ -155,12 +155,12 @@ export function ManualCostsChart({
                 />
                 <span className="truncate">{service}</span>
               </span>
-              <span className="tnum font-mono">{formatCentsPrecise(current[service] ?? 0)}</span>
+              <span className="tnum">{formatCentsPrecise(current[service] ?? 0)}</span>
             </div>
           ))}
           <div className="flex items-center justify-between border-t border-edge pt-1.5 text-xs">
-            <span className="font-mono uppercase tracking-wider text-muted">Total</span>
-            <span className="tnum font-mono text-gold">{formatCentsPrecise(currentTotal)}</span>
+            <span className="uppercase tracking-wider text-muted">Total</span>
+            <span className="tnum text-gold">{formatCentsPrecise(currentTotal)}</span>
           </div>
         </div>
       </div>

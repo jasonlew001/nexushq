@@ -11,19 +11,19 @@ export function SignupFunnel({ signups, paying }: { signups: number; paying: num
   return (
     <div className="space-y-3">
       <div>
-        <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-muted">
+        <div className="mb-1 flex items-center justify-between text-[11px] text-muted">
           <span>SIGNUPS</span>
           <span className="tnum text-ink">{signups.toLocaleString()}</span>
         </div>
         <div className="h-2 w-full rounded-full bg-accent/70" />
       </div>
 
-      <p className="text-center font-mono text-[10px] uppercase tracking-wide text-faint">
+      <p className="text-center text-[10px] uppercase tracking-wide text-faint">
         converts at {formatPercent(pct)}
       </p>
 
       <div>
-        <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-muted">
+        <div className="mb-1 flex items-center justify-between text-[11px] text-muted">
           <span>PAYING</span>
           <span className="tnum text-ink">{paying.toLocaleString()}</span>
         </div>
@@ -35,7 +35,7 @@ export function SignupFunnel({ signups, paying }: { signups: number; paying: num
         </div>
       </div>
 
-      <p className="font-mono text-[11px] text-faint">
+      <p className="text-[11px] text-faint">
         {free.toLocaleString()} free · room to convert
       </p>
     </div>

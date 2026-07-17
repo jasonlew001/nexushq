@@ -79,18 +79,18 @@ async function RevenueSections() {
             <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
               Renewal rate (1st → 2nd period)
             </p>
-            <p className="tnum font-mono text-2xl font-semibold text-accent">
+            <p className="tnum text-2xl font-semibold text-accent">
               {metrics.retention.renewalRate != null
                 ? formatPercent(metrics.retention.renewalRate)
                 : "—"}
             </p>
-            <p className="mt-1 font-mono text-xs text-faint">
+            <p className="mt-1 text-xs text-faint">
               {metrics.retention.renewed} of {metrics.retention.renewalEligible} eligible
             </p>
             {metrics.retention.byPlan.length > 0 && (
               <div className="mt-2 space-y-0.5">
                 {metrics.retention.byPlan.map((plan) => (
-                  <div key={plan.label} className="flex justify-between font-mono text-xs">
+                  <div key={plan.label} className="flex justify-between text-xs">
                     <span className="text-muted">{plan.label}</span>
                     <span className="tnum">
                       {plan.rate != null ? formatPercent(plan.rate) : "—"}{" "}
@@ -107,10 +107,10 @@ async function RevenueSections() {
             <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
               Avg shelf life (ended subs)
             </p>
-            <p className="tnum font-mono text-2xl font-semibold">
+            <p className="tnum text-2xl font-semibold">
               {months(metrics.retention.avgEndedLifetimeDays)}
             </p>
-            <p className="mt-1 font-mono text-xs text-faint">
+            <p className="mt-1 text-xs text-faint">
               {metrics.retention.endedCount} completed subscription
               {metrics.retention.endedCount === 1 ? "" : "s"}
             </p>
@@ -119,10 +119,10 @@ async function RevenueSections() {
             <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
               Avg tenure (still active)
             </p>
-            <p className="tnum font-mono text-2xl font-semibold">
+            <p className="tnum text-2xl font-semibold">
               {months(metrics.retention.avgActiveTenureDays)}
             </p>
-            <p className="mt-1 font-mono text-xs text-faint">
+            <p className="mt-1 text-xs text-faint">
               {metrics.retention.activeCount} active — still accruing, kept separate from
               ended
             </p>

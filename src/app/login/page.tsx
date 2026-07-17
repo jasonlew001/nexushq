@@ -39,9 +39,12 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm motion-safe:animate-fade-up">
-        <h1 className="mb-8 text-center text-lg font-semibold tracking-tight">
-          Nexus <span className="text-gold">HQ</span>
-        </h1>
+        <div className="mb-8 flex items-center justify-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-surface">
+            N
+          </span>
+          <h1 className="text-lg font-semibold tracking-tight">Nexus HQ</h1>
+        </div>
 
         <form
           onSubmit={handleSubmit}
@@ -59,7 +62,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border border-edge bg-surface-2 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-edge-strong"
+                className="w-full rounded-md border border-edge bg-surface-2 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
             </div>
             <div>
@@ -76,7 +79,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-edge bg-surface-2 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-edge-strong"
+                className="w-full rounded-md border border-edge bg-surface-2 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
             </div>
 
@@ -85,7 +88,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="w-full rounded-md bg-ink px-3 py-2 text-sm font-medium text-surface transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>

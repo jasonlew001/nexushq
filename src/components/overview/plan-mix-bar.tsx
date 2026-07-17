@@ -35,7 +35,7 @@ export function PlanMixBar({
           />
         ))}
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
         {plans.map((p) => (
           <span key={p.label} className="flex items-center gap-1.5">
             <span

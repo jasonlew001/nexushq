@@ -16,12 +16,12 @@ export async function RefreshedAt() {
   const oldest = [users.fetchedAt, stripe.fetchedAt, revenue.fetchedAt, anthropic.fetchedAt].sort()[0];
 
   return (
-    <p className="font-mono text-xs text-faint">
+    <p className="text-xs text-faint">
       synced <span className="tnum">{formatRelativeTime(oldest)}</span>
     </p>
   );
 }
 
 export function RefreshedAtSkeleton() {
-  return <p className="font-mono text-xs text-faint">synced —</p>;
+  return <p className="text-xs text-faint">synced —</p>;
 }

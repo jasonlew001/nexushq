@@ -8,8 +8,8 @@ const config: Config = {
         lg: "12px",
       },
       colors: {
-        // Dark command-center palette — fairway green lives in surfaces/borders,
-        // not text. Gold is scarce: KPI emphasis + founder mark only.
+        // Off-white surface palette — fairway green is the one accent, gold
+        // is scarce (MRR emphasis + founder mark only).
         bg: "hsl(var(--bg))",
         surface: "hsl(var(--surface))",
         "surface-2": "hsl(var(--surface-2))",
@@ -25,7 +25,6 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       keyframes: {
         "fade-up": {
@@ -40,10 +39,6 @@ const config: Config = {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
         },
-        "zoom-in": {
-          from: { opacity: "0", transform: "scale(0.97)" },
-          to: { opacity: "1", transform: "scale(1)" },
-        },
         shimmer: {
           "0%": { backgroundPosition: "200% 0" },
           "100%": { backgroundPosition: "-200% 0" },
@@ -53,7 +48,6 @@ const config: Config = {
         "fade-up": "fade-up 200ms ease-out both",
         "fade-in": "fade-in 150ms ease-out both",
         "slide-in-right": "slide-in-right 200ms ease-out both",
-        "zoom-in": "zoom-in 240ms ease-out both",
         shimmer: "shimmer 1.8s linear infinite",
       },
     },

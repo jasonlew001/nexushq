@@ -88,23 +88,16 @@ export async function FreshnessLedger() {
   const status = statusHeadline(datasets);
 
   return (
-    <div
-      className="hud-corners rounded-lg border border-edge bg-surface"
-      style={
-        status.tone !== "accent"
-          ? ({ "--hud-color": `hsl(var(--${status.tone}) / 0.55)` } as React.CSSProperties)
-          : undefined
-      }
-    >
+    <div className="rounded-lg border border-edge bg-surface">
       {/* Status header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
         <div className="flex items-center gap-2.5">
           <LiveDot tone={status.tone === "neutral" ? "accent" : status.tone} />
-          <p className={cn("font-mono text-sm font-semibold tracking-widest", TONE_TEXT[status.tone])}>
+          <p className={cn("text-sm font-semibold tracking-widest", TONE_TEXT[status.tone])}>
             {status.text}
           </p>
         </div>
-        <p className="font-mono text-xs text-faint">
+        <p className="text-xs text-faint">
           <span className="tnum">{datasets.length}</span> datasets ·{" "}
           <span className="tnum">{totalRows.toLocaleString()}</span> total rows
         </p>
@@ -112,7 +105,7 @@ export async function FreshnessLedger() {
 
       {/* Meter scale legend (desktop only, aligns with the meter column) */}
       <div className="hidden items-center justify-end gap-4 border-b border-edge px-4 py-1.5 sm:flex">
-        <div className="flex w-44 shrink-0 justify-between font-mono text-[9px] uppercase tracking-wider text-faint">
+        <div className="flex w-44 shrink-0 justify-between text-[9px] uppercase tracking-wider text-faint">
           <span>fresh</span>
           <span>30d</span>
           <span>90d</span>
@@ -142,7 +135,7 @@ export async function FreshnessLedger() {
 
               {/* Row count + proportional bar */}
               <div className="hidden w-32 shrink-0 md:block">
-                <p className="tnum text-right font-mono text-xs text-muted">
+                <p className="tnum text-right text-xs text-muted">
                   {dataset.rowCount.toLocaleString()} rows
                 </p>
                 <div className="mt-1 h-1 w-full rounded-full bg-surface-2">
@@ -160,7 +153,7 @@ export async function FreshnessLedger() {
 
               {/* Relative time */}
               <p
-                className={cn("w-24 shrink-0 text-right font-mono text-xs", TONE_TEXT[tone])}
+                className={cn("w-24 shrink-0 text-right text-xs", TONE_TEXT[tone])}
                 title={dataset.lastUpdatedAt ? formatDate(dataset.lastUpdatedAt) : undefined}
               >
                 {dataset.lastUpdatedAt ? formatRelativeTime(dataset.lastUpdatedAt) : "never"}

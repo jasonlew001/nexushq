@@ -31,7 +31,7 @@ export function ToggleChips({
             onClick={() => onToggle(opt.key)}
             aria-pressed={isOn}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[11px] transition-colors",
+              "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
               isOn
                 ? "border-edge-strong bg-surface-2 text-ink"
                 : "border-edge text-faint line-through hover:text-muted"

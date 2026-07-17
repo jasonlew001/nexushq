@@ -100,7 +100,7 @@ export async function CostsPanel() {
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Badge tone="neutral">manual</Badge>
             {perPersonEntries.map(({ person, cents }) => (
-              <span key={person} className="tnum font-mono text-xs text-muted">
+              <span key={person} className="tnum text-xs text-muted">
                 {PERSON_LABEL[person]} {formatCentsPrecise(cents)}
               </span>
             ))}

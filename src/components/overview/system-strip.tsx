@@ -28,7 +28,7 @@ export async function SystemStrip() {
   const isStale = oldest != null && oldest > DATA_STALENESS_WARN_DAYS;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
       <span className="tnum">Burn MTD {formatCentsWhole(burnCents)}</span>
       <span className="text-faint">·</span>
       <span className="flex items-center gap-1.5">
