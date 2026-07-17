@@ -1,9 +1,9 @@
 // Real per-plan subscriber counts from stripe-metrics.ts → planBreakdown.
 // Segment widths are proportional to subscriberCount — never fabricated.
 const PLAN_COLOR: Record<string, string> = {
-  Monthly: "#e0b64d",
-  Annual: "#b98f3a",
-  "6-Month": "#6b5a2e",
+  Monthly: "#C9A227",
+  Annual: "#94741F",
+  "6-Month": "#5F4B14",
 };
 
 function colorFor(label: string): string {

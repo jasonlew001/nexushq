@@ -9,6 +9,7 @@ import {
   tooltipContentStyle,
   tooltipLabelStyle,
   tooltipItemStyle,
+  tooltipCursorFill,
 } from "./chart-theme";
 
 function shortWeekLabel(iso: string): string {
@@ -53,7 +54,7 @@ export function OverviewTrendChart({ data }: { data: WeeklySignupBucket[] }) {
           labelStyle={tooltipLabelStyle}
           itemStyle={tooltipItemStyle}
           formatter={(value) => [value, "Signups"]}
-          cursor={{ fill: "rgba(255,255,255,0.03)" }}
+          cursor={tooltipCursorFill}
         />
         <Bar
           dataKey="total"

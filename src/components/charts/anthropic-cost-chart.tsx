@@ -23,6 +23,7 @@ import {
   tooltipContentStyle,
   tooltipLabelStyle,
   tooltipItemStyle,
+  tooltipCursorFill,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
 import { RangeTabs } from "./range-tabs";
@@ -225,7 +226,7 @@ export function AnthropicCostChart({
                 contentStyle={tooltipContentStyle}
                 labelStyle={tooltipLabelStyle}
                 itemStyle={tooltipItemStyle}
-                cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                cursor={tooltipCursorFill}
               />
               {visibleTokenSeries.map((series) => (
                 <Bar

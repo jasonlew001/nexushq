@@ -1,33 +1,38 @@
 import { UNATTRIBUTED, OTHER_SOURCE, NO_ACQ_DATA } from "@/lib/constants";
 
-// Validated against the app's chart surface (#111714) — see dataviz skill.
-// node scripts/validate_palette.js "#3987e5,#199e70,#c98500,#008300,#9085e9,#e66767,#d55181,#d95926"
-//   --mode dark --surface "#111714"
-// -> all 8 slots PASS lightness/chroma/contrast; worst adjacent CVD ΔE 10.3
-//    (floor band — legal with the surface-gap + legend already in use here).
+// Validated against the app's light chart surface (#FFFFFF) — see dataviz
+// skill's documented reference instance (references/palette.md), whose
+// eight hues match this app's prior dark-mode set re-stepped and re-ordered
+// for light. Re-verified directly against our surface:
+// node scripts/validate_palette.js "#2a78d6,#008300,#e87ba4,#eda100,#1baf7a,#eb6834,#4a3aa7,#e34948"
+//   --mode light --surface "#ffffff"
+// -> ALL CHECKS PASS (lightness/chroma/CVD/normal-vision floor); 3 slots
+//    (magenta, yellow, aqua) sit below 3:1 contrast by design — the
+//    documented "relief rule" applies (visible tooltips/legends/chips, both
+//    already in use on every chart here, not color alone).
 // Order is the CVD-safety mechanism: assign in this fixed sequence, never
 // cycle or re-sort by value.
 export const CATEGORICAL = [
-  "#3987e5", // blue
-  "#199e70", // aqua
-  "#c98500", // yellow
+  "#2a78d6", // blue
   "#008300", // green
-  "#9085e9", // violet
-  "#e66767", // red
-  "#d55181", // magenta
-  "#d95926", // orange
+  "#e87ba4", // magenta
+  "#eda100", // yellow
+  "#1baf7a", // aqua
+  "#eb6834", // orange
+  "#4a3aa7", // violet
+  "#e34948", // red
 ] as const;
 
 // One consistent gray for every "no attribution" / "unattributed" / "no
 // data" bucket, across every chart — never a categorical hue.
-export const NULL_GRAY = "#6b7871";
+export const NULL_GRAY = "#8A929C";
 
-export const CHART_SURFACE = "#111714";
-export const CHART_GRID = "#223028"; // one step off surface, hairline
-export const CHART_TEXT_MUTED = "#8FA098";
-export const CHART_TEXT_INK = "#E7ECE9";
-export const CHART_ACCENT = "#3DBE8B";
-export const CHART_GOLD = "#D4AF37";
+export const CHART_SURFACE = "#FFFFFF";
+export const CHART_GRID = "#E7E9EC"; // one step off surface, hairline
+export const CHART_TEXT_MUTED = "#5D6570";
+export const CHART_TEXT_INK = "#1A202B";
+export const CHART_ACCENT = "#257F5C"; // matches --accent
+export const CHART_GOLD = "#94741F"; // matches --gold, MRR/money only
 
 const ACQ_SOURCE_LABELS: Record<string, string> = {
   coach_referral: "Coach referral",
@@ -61,9 +66,10 @@ export function colorForCategory(key: string, order: readonly string[]): string 
 }
 
 export const tooltipContentStyle: React.CSSProperties = {
-  background: "#161D19",
-  border: "1px solid #223028",
+  background: "#FFFFFF",
+  border: "1px solid #DDE0E5",
   borderRadius: 8,
+  boxShadow: "0 4px 12px rgba(16,24,40,0.08)",
   fontSize: 12,
   color: CHART_TEXT_INK,
   padding: "8px 10px",
@@ -76,8 +82,13 @@ export const tooltipLabelStyle: React.CSSProperties = {
 };
 
 // Recharts colors tooltip items with the series color when it has one, and
-// falls back to #000 when it doesn't (e.g. bars filled via <Cell>). Black on
-// our dark tooltip surface is unreadable — force ink on every item.
+// falls back to #000 when it doesn't (e.g. bars filled via <Cell>). Force
+// ink explicitly so every item stays legible regardless of series color.
 export const tooltipItemStyle: React.CSSProperties = {
   color: CHART_TEXT_INK,
 };
+
+// Shared hover-cursor tint for Bar/Composed charts — a faint ink wash,
+// legible on the light surface (the old dark-mode rgba(255,255,255,…) was
+// invisible here).
+export const tooltipCursorFill = { fill: "rgba(16,24,40,0.04)" };

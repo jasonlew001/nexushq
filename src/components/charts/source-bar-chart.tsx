@@ -10,6 +10,7 @@ import {
   tooltipContentStyle,
   tooltipLabelStyle,
   tooltipItemStyle,
+  tooltipCursorFill,
 } from "./chart-theme";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -60,7 +61,7 @@ export function SourceBarChart({ data, order, kind, emptyLabel }: SourceBarChart
           labelStyle={tooltipLabelStyle}
           itemStyle={tooltipItemStyle}
           formatter={(value) => [value, "Signups"]}
-          cursor={{ fill: "rgba(255,255,255,0.03)" }}
+          cursor={tooltipCursorFill}
         />
         <Bar dataKey="count" maxBarSize={20} radius={[0, 4, 4, 0]}>
           {rows.map((row) => (

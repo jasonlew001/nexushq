@@ -21,6 +21,7 @@ import {
   tooltipContentStyle,
   tooltipLabelStyle,
   tooltipItemStyle,
+  tooltipCursorFill,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
 import { RangeTabs } from "./range-tabs";
@@ -144,7 +145,7 @@ export function SignupsByWeekChart({
             labelStyle={tooltipLabelStyle}
             itemStyle={tooltipItemStyle}
             formatter={(value, name) => [value, utmSourceLabel(String(name))]}
-            cursor={{ fill: "rgba(255,255,255,0.03)" }}
+            cursor={tooltipCursorFill}
           />
           {visibleKeys.map((key) => (
             <Bar

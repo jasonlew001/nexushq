@@ -18,6 +18,7 @@ import {
   tooltipContentStyle,
   tooltipLabelStyle,
   tooltipItemStyle,
+  tooltipCursorFill,
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
 import { RangeTabs } from "./range-tabs";
@@ -124,7 +125,7 @@ export function ManualCostsChart({
                 `$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
                 String(name),
               ]}
-              cursor={{ fill: "rgba(255,255,255,0.03)" }}
+              cursor={tooltipCursorFill}
             />
             {visibleServices.map((service) => (
               <Bar
