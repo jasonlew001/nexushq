@@ -9,9 +9,8 @@ export function Sidebar() {
   return (
     <aside className="sidebar-stagger sticky top-0 hidden h-screen w-[216px] shrink-0 flex-col border-r border-edge px-3 py-4 md:flex">
       <Link href="/" style={{ "--i": 0 } as React.CSSProperties} className="mb-6 flex items-center gap-2 px-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-surface">
-          N
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="" className="h-8 w-8" />
         <span className="text-[15px] font-semibold tracking-tight">Nexus HQ</span>
       </Link>
 
@@ -33,9 +32,8 @@ export function MobileTopBar() {
   return (
     <div className="mb-4 flex items-center gap-4 border-b border-edge pb-3 md:hidden">
       <Link href="/" className="flex shrink-0 items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-xs font-semibold text-surface">
-          N
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="" className="h-7 w-7" />
         <span className="text-sm font-semibold tracking-tight">Nexus HQ</span>
       </Link>
       <MobileNav />

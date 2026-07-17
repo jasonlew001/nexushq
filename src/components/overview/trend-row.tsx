@@ -17,8 +17,8 @@ export async function TrendRow() {
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
       <Card>
-        <SectionLabel>Signups by week</SectionLabel>
-        <OverviewTrendChart data={signups.weekly} />
+        <SectionLabel>Signups</SectionLabel>
+        <OverviewTrendChart weekly={signups.weekly} daily={signups.dailySignups} />
       </Card>
 
       <div className="flex flex-col gap-4">
@@ -50,8 +50,11 @@ export function TrendRowSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
       <ShellCard className="h-[340px]">
-        <Skeleton className="mb-3 h-3 w-32" />
-        <Skeleton className="h-[280px] w-full" />
+        <div className="mb-3 flex items-center justify-between">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-6 w-40 rounded-md" />
+        </div>
+        <Skeleton className="h-[244px] w-full" />
       </ShellCard>
       <div className="flex flex-col gap-4">
         <ShellCard className="h-[104px]">

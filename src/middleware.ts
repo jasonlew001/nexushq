@@ -55,5 +55,8 @@ export const config = {
   // api routes handle their own auth/404 (see requireFounder() call sites) —
   // routing them through here would turn an unauthenticated fetch() into an
   // HTML redirect response instead of a clean 401/404 JSON response.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // logo.png/icon.png are public assets (the login page's own logo, and the
+  // browser favicon, both requested before/without a session) — gating them
+  // turned every request for either into an HTML redirect instead of image.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|logo.png|icon.png).*)"],
 };

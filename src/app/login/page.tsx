@@ -40,9 +40,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm motion-safe:animate-fade-up">
         <div className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-surface">
-            N
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" className="h-8 w-8" />
           <h1 className="text-lg font-semibold tracking-tight">Nexus HQ</h1>
         </div>
 
