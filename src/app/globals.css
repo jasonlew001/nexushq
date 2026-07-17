@@ -3,38 +3,28 @@
 @tailwind utilities;
 
 :root {
-  /* Green-tinted near-black. HSL triplets so Tailwind can apply alpha. */
-  --bg: 150 15% 5%; /* #0B0F0D */
-  --surface: 150 12% 8%; /* #111714 */
-  --surface-2: 150 12% 10%; /* #161D19 */
-  --edge: 152 17% 16%; /* #223028 */
-  --edge-strong: 152 17% 24%;
-  --ink: 144 10% 92%; /* #E7ECE9 */
-  --muted: 150 8% 60%; /* #8FA098 */
-  --faint: 150 8% 40%;
-  --accent: 156 51% 49%; /* #3DBE8B */
-  --gold: 46 65% 52%; /* #D4AF37 */
-  --danger: 358 75% 59%; /* #E5484D */
-  --warn: 37 90% 55%; /* #F5A524 */
+  /* Off-white "Fieldra-style" light surface. HSL triplets so Tailwind can apply alpha. */
+  --bg: 220 11% 95%; /* #F0F1F3 */
+  --surface: 0 0% 100%; /* #FFFFFF */
+  --surface-2: 220 14% 97%; /* #F6F7F9 */
+  --edge: 220 12% 90%; /* #E2E4E8 */
+  --edge-strong: 220 10% 82%; /* #CDD0D6 */
+  --ink: 220 20% 12%; /* #181D25 */
+  --muted: 220 9% 42%; /* #616874 */
+  --faint: 220 8% 62%; /* #989DA6 */
+  --accent: 158 55% 32%; /* #257F5C — darkened fairway green, ~4.9:1 on white */
+  --gold: 42 65% 35%; /* #94741F — antique gold, reserved for MRR/money */
+  --danger: 358 65% 45%; /* #BE2F35 */
+  --warn: 28 90% 38%; /* #B85F0A */
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   @apply bg-bg text-ink antialiased;
   font-feature-settings: "cv02", "cv03", "cv04";
-  /* HUD atmosphere: a faint technical grid + two ambient reactor-glow
-     corners. Kept low-opacity and fixed so it reads as depth, not noise,
-     and never competes with foreground text or chart ink. */
-  background-image:
-    radial-gradient(900px circle at 8% -12%, hsl(var(--accent) / 0.10), transparent 45%),
-    radial-gradient(700px circle at 100% 115%, hsl(var(--gold) / 0.07), transparent 45%),
-    linear-gradient(hsl(var(--edge) / 0.32) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--edge) / 0.32) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
-  background-attachment: fixed;
 }
 
 /* Dense-numeric everywhere numbers align in columns */
@@ -103,51 +93,3 @@ body {
   }
 }
 
-/* HUD corner brackets — four L-shaped marks via layered backgrounds, no
-   extra markup. --hud-color defaults to the accent; override per-card
-   (e.g. danger tone on an alert) with an inline style. */
-.hud-corners {
-  --hud-color: hsl(var(--accent) / 0.55);
-  --hud-size: 14px;
-  --hud-thick: 2px;
-  position: relative;
-}
-.hud-corners::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background:
-    linear-gradient(var(--hud-color), var(--hud-color)) top left / var(--hud-size) var(--hud-thick) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) top left / var(--hud-thick) var(--hud-size) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) top right / var(--hud-size) var(--hud-thick) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) top right / var(--hud-thick) var(--hud-size) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) bottom left / var(--hud-size) var(--hud-thick) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) bottom left / var(--hud-thick) var(--hud-size) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) bottom right / var(--hud-size) var(--hud-thick) no-repeat,
-    linear-gradient(var(--hud-color), var(--hud-color)) bottom right / var(--hud-thick) var(--hud-size) no-repeat;
-}
-
-/* Slow ambient sweep for the header's bottom edge — a hairline of light
-   drifting left-to-right, like a scanning sensor. Pure decoration. */
-@keyframes hud-scan {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.hud-scanline {
-  background-color: hsl(var(--edge));
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    hsl(var(--accent) / 0.9),
-    transparent
-  );
-  background-size: 40% 100%;
-  background-repeat: no-repeat;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .hud-scanline {
-    animation: hud-scan 6s linear infinite;
-  }
-}

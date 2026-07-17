@@ -19,7 +19,7 @@ export function Header() {
           <SyncButton />
         </div>
       </div>
-      <div className="hud-scanline h-px w-full" />
+      <div className="h-px w-full border-b border-edge" />
     </header>
   );
 }

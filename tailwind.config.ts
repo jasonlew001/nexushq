@@ -4,6 +4,9 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      borderRadius: {
+        lg: "12px",
+      },
       colors: {
         // Dark command-center palette — fairway green lives in surfaces/borders,
         // not text. Gold is scarce: KPI emphasis + founder mark only.

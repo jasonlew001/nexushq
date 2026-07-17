@@ -35,11 +35,7 @@ export async function KpiRow() {
 
   return (
     <section className="stagger grid grid-cols-1 gap-4 sm:grid-cols-[1.5fr_1fr]">
-      <Card hud hudTone="gold" className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gold/20 blur-2xl"
-        />
+      <Card className="relative overflow-hidden">
         <div className="relative flex items-start justify-between">
           <div>
             <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-muted">MRR</p>

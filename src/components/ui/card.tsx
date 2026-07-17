@@ -2,14 +2,6 @@ import { cn } from "@/lib/cn";
 
 type HudTone = "accent" | "gold" | "danger" | "warn" | "neutral";
 
-const HUD_COLOR: Record<HudTone, string> = {
-  accent: "hsl(var(--accent) / 0.55)",
-  gold: "hsl(var(--gold) / 0.55)",
-  danger: "hsl(var(--danger) / 0.55)",
-  warn: "hsl(var(--warn) / 0.55)",
-  neutral: "hsl(var(--edge-strong) / 0.9)",
-};
-
 export function Card({
   className,
   children,
@@ -18,14 +10,19 @@ export function Card({
 }: {
   className?: string;
   children: React.ReactNode;
-  /** Opt-in HUD corner brackets — used on the overview page's live-stat cards. */
+  /** @deprecated no-op, retained until every call site drops it in Phase 6. */
   hud?: boolean;
+  /** @deprecated no-op, retained until every call site drops it in Phase 6. */
   hudTone?: HudTone;
 }) {
+  void hud;
+  void hudTone;
   return (
     <div
-      className={cn("rounded-lg border border-edge bg-surface p-4", hud && "hud-corners", className)}
-      style={hud ? ({ "--hud-color": HUD_COLOR[hudTone] } as React.CSSProperties) : undefined}
+      className={cn(
+        "rounded-lg border border-edge bg-surface p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+        className
+      )}
     >
       {children}
     </div>

@@ -94,7 +94,7 @@ export async function OverviewCards() {
         <Link
           key={card.href}
           href={card.href}
-          className="hud-corners group relative rounded-lg border border-edge bg-surface p-4 transition-all duration-150 [--hud-color:hsl(var(--accent)/0.3)] hover:-translate-y-0.5 hover:border-edge-strong hover:bg-surface-2 hover:shadow-[0_0_28px_-10px_hsl(var(--accent)/0.55)] hover:[--hud-color:hsl(var(--accent)/0.85)]"
+          className="group relative rounded-lg border border-edge bg-surface p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-edge-strong hover:shadow-sm"
         >
           <div className="mb-3 flex items-center justify-between">
             <span className="rounded-md bg-surface-2 p-2 transition-colors group-hover:bg-accent/10">
