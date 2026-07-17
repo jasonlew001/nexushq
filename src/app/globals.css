@@ -13,7 +13,7 @@
   --muted: 220 9% 42%; /* #616874 */
   --faint: 220 8% 62%; /* #989DA6 */
   --accent: 158 55% 32%; /* #257F5C — darkened fairway green, ~4.9:1 on white */
-  --gold: 42 65% 35%; /* #94741F — antique gold, reserved for MRR/money */
+  --gold: 42 65% 35%; /* #93701F — antique gold, reserved for MRR/money; 4.59:1 on white */
   --danger: 358 65% 45%; /* #BE2F35 */
   --warn: 28 90% 38%; /* #B85F0A */
 }

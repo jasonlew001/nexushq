@@ -32,7 +32,7 @@ export const CHART_GRID = "#E7E9EC"; // one step off surface, hairline
 export const CHART_TEXT_MUTED = "#5D6570";
 export const CHART_TEXT_INK = "#1A202B";
 export const CHART_ACCENT = "#257F5C"; // matches --accent
-export const CHART_GOLD = "#94741F"; // matches --gold, MRR/money only
+export const CHART_GOLD = "#93701F"; // matches --gold, MRR/money only
 
 const ACQ_SOURCE_LABELS: Record<string, string> = {
   coach_referral: "Coach referral",

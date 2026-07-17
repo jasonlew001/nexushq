@@ -2,7 +2,7 @@
 // Segment widths are proportional to subscriberCount — never fabricated.
 const PLAN_COLOR: Record<string, string> = {
   Monthly: "#C9A227",
-  Annual: "#94741F",
+  Annual: "#93701F",
   "6-Month": "#5F4B14",
 };
 
