@@ -1,6 +1,7 @@
 import { requireFounder } from "@/lib/auth";
 import { Header } from "@/components/header";
 import { Sidebar, MobileTopBar } from "@/components/sidebar";
+import { Canvas } from "@/components/canvas";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,7 @@ export default async function HqLayout({ children }: { children: React.ReactNode
       <main className="min-w-0 flex-1 px-6 py-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <MobileTopBar />
-          <Header />
-          {children}
+          <Canvas header={<Header />}>{children}</Canvas>
         </div>
       </main>
     </div>

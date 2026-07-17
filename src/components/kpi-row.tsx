@@ -1,6 +1,6 @@
 import { CircleDollarSign, Users, UserPlus, type LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, ShellCard } from "@/components/ui/skeleton";
 import { getSignupMetrics } from "@/lib/data/signups";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { formatCentsWhole, formatPercent } from "@/lib/format";
@@ -107,9 +107,19 @@ export async function KpiRow() {
 export function KpiRowSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <Skeleton className="h-[148px] w-full rounded-lg" />
-      <Skeleton className="h-[148px] w-full rounded-lg" />
-      <Skeleton className="h-[148px] w-full rounded-lg" />
+      {Array.from({ length: 3 }).map((_, i) => (
+        <ShellCard key={i} className="overflow-hidden">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <Skeleton className="h-7 w-7 rounded-md" />
+          </div>
+          <Skeleton className="-mx-4 -mb-4 mt-3 h-10 w-[calc(100%+2rem)] rounded-none" />
+        </ShellCard>
+      ))}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
 } from "./chart-theme";
 import { ToggleChips } from "./toggle-chips";
 import { RangeTabs } from "./range-tabs";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 type Cohort = "all" | "paying";
 
@@ -55,6 +56,7 @@ export function SignupsByWeekChart({
 }) {
   const [cohort, setCohort] = useState<Cohort>("all");
   const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("12");
+  const reducedMotion = useReducedMotion();
 
   // Series present in EITHER cohort, so chip state survives switching (a
   // source with zero paying signups keeps its chip rather than vanishing).
@@ -157,6 +159,10 @@ export function SignupsByWeekChart({
               strokeWidth={2}
               maxBarSize={24}
               radius={key === lastVisibleKey ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              isAnimationActive={!reducedMotion}
+              animationBegin={150}
+              animationDuration={600}
+              animationEasing="ease-out"
             />
           ))}
         </BarChart>

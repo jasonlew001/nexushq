@@ -7,17 +7,19 @@ import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
 // Hidden below md — MobileTopBar below takes over navigation there.
 export function Sidebar() {
   return (
-    <aside className="sticky top-0 hidden h-screen w-[216px] shrink-0 flex-col border-r border-edge px-3 py-4 md:flex">
-      <Link href="/" className="mb-6 flex items-center gap-2 px-3">
+    <aside className="sidebar-stagger sticky top-0 hidden h-screen w-[216px] shrink-0 flex-col border-r border-edge px-3 py-4 md:flex">
+      <Link href="/" style={{ "--i": 0 } as React.CSSProperties} className="mb-6 flex items-center gap-2 px-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-surface">
           N
         </span>
         <span className="text-[15px] font-semibold tracking-tight">Nexus HQ</span>
       </Link>
 
-      <SidebarNav />
+      <div style={{ "--i": 1 } as React.CSSProperties}>
+        <SidebarNav />
+      </div>
 
-      <div className="mt-auto px-3 pt-4">
+      <div className="mt-auto px-3 pt-4" style={{ "--i": 9 } as React.CSSProperties}>
         <Suspense fallback={<RefreshedAtSkeleton />}>
           <RefreshedAt />
         </Suspense>

@@ -11,6 +11,7 @@ import {
   tooltipItemStyle,
   tooltipCursorFill,
 } from "./chart-theme";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 function shortWeekLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -19,6 +20,7 @@ function shortWeekLabel(iso: string): string {
 // The Overview page's big trend chart: total signups per week, single
 // series, rendered with a top-saturated-to-transparent gradient fill.
 export function OverviewTrendChart({ data }: { data: WeeklySignupBucket[] }) {
+  const reducedMotion = useReducedMotion();
   const rows = data.slice(-12).map((week) => ({
     label: shortWeekLabel(week.weekStart),
     total: week.total,
@@ -61,6 +63,10 @@ export function OverviewTrendChart({ data }: { data: WeeklySignupBucket[] }) {
           fill="url(#overviewTrendFill)"
           radius={[6, 6, 0, 0]}
           maxBarSize={36}
+          isAnimationActive={!reducedMotion}
+          animationBegin={150}
+          animationDuration={600}
+          animationEasing="ease-out"
         />
       </BarChart>
     </ResponsiveContainer>

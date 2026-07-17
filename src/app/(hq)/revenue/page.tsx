@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
 import { PageShell } from "@/components/page-shell";
 import { Card, SectionLabel } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, ShellCard } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { getCustomerRows } from "@/lib/data/customers";
@@ -166,23 +166,53 @@ async function RevenueSections() {
   );
 }
 
+function RevenueSectionsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <ShellCard key={i} className="h-24">
+            <Skeleton className="mb-1.5 h-3 w-20" />
+            <Skeleton className="h-7 w-16" />
+          </ShellCard>
+        ))}
+      </div>
+      <ShellCard className="h-[280px]">
+        <Skeleton className="mb-3 h-3 w-48" />
+        <Skeleton className="h-[220px] w-full" />
+      </ShellCard>
+      <ShellCard className="h-[180px]">
+        <Skeleton className="mb-3 h-3 w-20" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-7 w-16" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+      </ShellCard>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ShellCard className="h-[200px]">
+          <Skeleton className="mb-3 h-3 w-32" />
+          <Skeleton className="h-[140px] w-full" />
+        </ShellCard>
+        <ShellCard className="h-[200px]">
+          <Skeleton className="mb-3 h-3 w-40" />
+          <Skeleton className="h-[140px] w-full" />
+        </ShellCard>
+      </div>
+    </div>
+  );
+}
+
 export default async function RevenuePage() {
   await requireFounder();
 
   return (
     <PageShell title="Revenue" description="MRR, plans, and subscription health">
-      <Suspense
-        fallback={
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-lg" />
-              ))}
-            </div>
-            <Skeleton className="h-[280px] w-full rounded-lg" />
-          </div>
-        }
-      >
+      <Suspense fallback={<RevenueSectionsSkeleton />}>
         <RevenueSections />
       </Suspense>
 

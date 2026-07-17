@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
 import { PageShell } from "@/components/page-shell";
 import { Card, SectionLabel } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, ShellCard } from "@/components/ui/skeleton";
 import { getSignupMetrics } from "@/lib/data/signups";
 import { SignupsByWeekChart } from "@/components/charts/signups-by-week";
 import { SourceBarChart } from "@/components/charts/source-bar-chart";
@@ -53,22 +53,37 @@ async function GrowthCharts() {
   );
 }
 
+function GrowthChartsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <ShellCard className="h-[280px]">
+        <Skeleton className="mb-3 h-3 w-56" />
+        <Skeleton className="h-[220px] w-full" />
+      </ShellCard>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ShellCard className="h-[220px]">
+          <Skeleton className="mb-3 h-3 w-56" />
+          <Skeleton className="h-[160px] w-full" />
+        </ShellCard>
+        <ShellCard className="h-[220px]">
+          <Skeleton className="mb-3 h-3 w-64" />
+          <Skeleton className="h-[160px] w-full" />
+        </ShellCard>
+      </div>
+      <ShellCard className="h-[220px]">
+        <Skeleton className="mb-3 h-3 w-40" />
+        <Skeleton className="h-[160px] w-full" />
+      </ShellCard>
+    </div>
+  );
+}
+
 export default async function GrowthPage() {
   await requireFounder();
 
   return (
     <PageShell title="Growth" description="Signups, acquisition sources, and geography">
-      <Suspense
-        fallback={
-          <div className="space-y-4">
-            <Skeleton className="h-[280px] w-full rounded-lg" />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Skeleton className="h-[220px] w-full rounded-lg" />
-              <Skeleton className="h-[220px] w-full rounded-lg" />
-            </div>
-          </div>
-        }
-      >
+      <Suspense fallback={<GrowthChartsSkeleton />}>
         <GrowthCharts />
       </Suspense>
     </PageShell>

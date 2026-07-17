@@ -13,6 +13,7 @@ import {
 import { CHART_GRID, CHART_TEXT_MUTED, CHART_ACCENT, CHART_SURFACE, tooltipContentStyle, tooltipLabelStyle, tooltipItemStyle } from "./chart-theme";
 import { RangeTabs } from "./range-tabs";
 import { formatCentsWhole } from "@/lib/format";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const RANGES = [
   { key: "4", label: "4w" },
@@ -31,6 +32,7 @@ export function MrrOverTimeChart({
   data: { weekStart: string; mrrCents: number }[];
 }) {
   const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("12");
+  const reducedMotion = useReducedMotion();
 
   const rows = useMemo(
     () =>
@@ -77,6 +79,10 @@ export function MrrOverTimeChart({
             strokeWidth={2}
             dot={{ r: 3, fill: CHART_ACCENT, stroke: CHART_SURFACE, strokeWidth: 2 }}
             activeDot={{ r: 5, fill: CHART_ACCENT, stroke: CHART_SURFACE, strokeWidth: 2 }}
+            isAnimationActive={!reducedMotion}
+            animationBegin={150}
+            animationDuration={600}
+            animationEasing="ease-out"
           />
         </LineChart>
       </ResponsiveContainer>

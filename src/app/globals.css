@@ -60,25 +60,29 @@ body {
   }
 }
 
-/* Staggered section entrance — applied via .stagger > * */
+/* Staggered section entrance — applied via .stagger > *. --stagger-base
+   shifts the whole sequence later (set on a page root to land it after the
+   header/shell stages of the load-in choreography); it defaults to 0 so
+   every existing in-section .stagger use is unaffected. */
 @media (prefers-reduced-motion: no-preference) {
   .stagger > * {
     animation: fade-up 240ms ease-out both;
+    animation-delay: var(--stagger-base, 0ms);
   }
   .stagger > *:nth-child(2) {
-    animation-delay: 40ms;
+    animation-delay: calc(var(--stagger-base, 0ms) + 40ms);
   }
   .stagger > *:nth-child(3) {
-    animation-delay: 80ms;
+    animation-delay: calc(var(--stagger-base, 0ms) + 80ms);
   }
   .stagger > *:nth-child(4) {
-    animation-delay: 120ms;
+    animation-delay: calc(var(--stagger-base, 0ms) + 120ms);
   }
   .stagger > *:nth-child(5) {
-    animation-delay: 160ms;
+    animation-delay: calc(var(--stagger-base, 0ms) + 160ms);
   }
   .stagger > *:nth-child(6) {
-    animation-delay: 200ms;
+    animation-delay: calc(var(--stagger-base, 0ms) + 200ms);
   }
 }
 
@@ -90,6 +94,26 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Sidebar cascade — logo, then each nav group/item, in order via --i on
+   each child. Plays once on initial mount (the sidebar never remounts on
+   soft navigation in the App Router). */
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-stagger > * {
+    animation: fade-up 260ms ease-out both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+}
+
+/* Canvas replay — the header + page body re-run their entrance every time
+   Canvas remounts on navigation (see components/canvas.tsx). The header
+   leads; .stagger's --stagger-base then carries the page body in behind it. */
+@media (prefers-reduced-motion: no-preference) {
+  .canvas-enter .stage-header {
+    animation: fade-up 300ms ease-out both;
+    animation-delay: 120ms;
   }
 }
 

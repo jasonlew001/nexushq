@@ -21,3 +21,19 @@ export function CardSkeleton({ className }: { className?: string }) {
     </div>
   );
 }
+
+// The "empty outlined shell" stage of the load-in choreography: real card
+// chrome (border, radius, bg) at the final layout's exact height, with
+// placeholder content passed in as children. Because the chrome matches the
+// live Card component, there's zero layout shift when real content resolves.
+export function ShellCard({
+  className,
+  children,
+}: {
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className={cn("rounded-lg border border-edge bg-surface p-4", className)}>{children}</div>
+  );
+}
