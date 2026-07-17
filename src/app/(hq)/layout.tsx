@@ -1,5 +1,6 @@
 import { requireFounder } from "@/lib/auth";
 import { Header } from "@/components/header";
+import { Sidebar, MobileTopBar } from "@/components/sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,15 @@ export default async function HqLayout({ children }: { children: React.ReactNode
   await requireFounder();
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-6">
-      <Header />
-      {children}
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="min-w-0 flex-1 px-6 py-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <MobileTopBar />
+          <Header />
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

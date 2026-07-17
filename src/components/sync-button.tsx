@@ -13,10 +13,10 @@ export function SyncButton() {
       type="button"
       onClick={() => startTransition(() => syncNow())}
       disabled={isPending}
-      className="font-mono text-xs text-faint transition-colors hover:text-gold disabled:pointer-events-none"
+      className="rounded-md bg-ink px-3.5 py-2 text-[13px] font-medium text-surface transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-60"
       title="Re-fetch Stripe, Anthropic and user data"
     >
-      {isPending ? "syncing…" : "[sync]"}
+      {isPending ? "Syncing…" : "Sync data"}
     </button>
   );
 }

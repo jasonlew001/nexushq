@@ -1,0 +1,42 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { SidebarNav, MobileNav } from "./nav";
+import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
+
+// Desktop rail: logo, grouped nav, pinned "synced" readout at the bottom.
+// Hidden below md — MobileTopBar below takes over navigation there.
+export function Sidebar() {
+  return (
+    <aside className="sticky top-0 hidden h-screen w-[216px] shrink-0 flex-col border-r border-edge px-3 py-4 md:flex">
+      <Link href="/" className="mb-6 flex items-center gap-2 px-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-surface">
+          N
+        </span>
+        <span className="text-[15px] font-semibold tracking-tight">Nexus HQ</span>
+      </Link>
+
+      <SidebarNav />
+
+      <div className="mt-auto px-3 pt-4">
+        <Suspense fallback={<RefreshedAtSkeleton />}>
+          <RefreshedAt />
+        </Suspense>
+      </div>
+    </aside>
+  );
+}
+
+// Compact top bar shown only below md, since the rail is hidden there.
+export function MobileTopBar() {
+  return (
+    <div className="mb-4 flex items-center gap-4 border-b border-edge pb-3 md:hidden">
+      <Link href="/" className="flex shrink-0 items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-xs font-semibold text-surface">
+          N
+        </span>
+        <span className="text-sm font-semibold tracking-tight">Nexus HQ</span>
+      </Link>
+      <MobileNav />
+    </div>
+  );
+}
