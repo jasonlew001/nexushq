@@ -74,53 +74,64 @@ export async function ActionStrip() {
     });
   }
 
-  if (items.length === 0) {
-    return (
-      <Card hud className="flex items-center gap-2 !py-2.5">
-        <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
-        <span className="text-sm text-muted">All clear — no action items.</span>
-      </Card>
-    );
-  }
-
   const TONE_TEXT = {
     danger: "text-danger",
     warn: "text-warn",
     neutral: "text-ink",
   } as const;
-  const TONE_HUD = {
-    danger: "danger",
-    warn: "warn",
-    neutral: "neutral",
+  const TONE_TILE = {
+    danger: "bg-danger/10 text-danger",
+    warn: "bg-warn/10 text-warn",
+    neutral: "bg-surface-2 text-muted",
   } as const;
 
+  if (items.length === 0) {
+    return (
+      <Card className="flex items-center gap-2.5">
+        <span className="rounded-md bg-accent/10 p-1.5">
+          <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.75} />
+        </span>
+        <span className="text-sm text-muted">All clear — no action items.</span>
+      </Card>
+    );
+  }
+
   return (
-    <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.key} hud hudTone={TONE_HUD[item.tone]} className="flex items-start gap-2.5">
-          <item.icon
-            className={`mt-0.5 h-4 w-4 shrink-0 ${TONE_TEXT[item.tone]}`}
-            strokeWidth={1.5}
-          />
-          <div className="min-w-0">
-            <p className={`text-sm font-medium ${TONE_TEXT[item.tone]}`}>{item.label}</p>
-            <p className="truncate font-mono text-xs text-faint">{item.detail}</p>
+    <Card className="p-0">
+      <div className="border-b border-edge px-4 py-3">
+        <p className="text-sm font-medium">Needs attention</p>
+      </div>
+      <div className="stagger divide-y divide-edge">
+        {items.map((item) => (
+          <div key={item.key} className="flex items-start gap-2.5 px-4 py-3">
+            <span className={`shrink-0 rounded-md p-1.5 ${TONE_TILE[item.tone]}`}>
+              <item.icon className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium ${TONE_TEXT[item.tone]}`}>{item.label}</p>
+              <p className="truncate text-xs text-faint">{item.detail}</p>
+            </div>
           </div>
-        </Card>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
 export function ActionStripSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Card key={i} className="flex items-center gap-2.5">
-          <Skeleton className="h-4 w-4 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-        </Card>
-      ))}
-    </div>
+    <Card className="p-0">
+      <div className="border-b border-edge px-4 py-3">
+        <Skeleton className="h-4 w-32" />
+      </div>
+      <div className="divide-y divide-edge">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2.5 px-4 py-3">
+            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

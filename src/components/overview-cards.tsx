@@ -5,9 +5,10 @@ import {
   Users,
   Receipt,
   Database,
-  ArrowUpRight,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSignupMetrics } from "@/lib/data/signups";
 import { getStripeMetrics } from "@/lib/data/stripe-metrics";
@@ -89,34 +90,48 @@ export async function OverviewCards() {
   ];
 
   return (
-    <section className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map((card) => (
-        <Link
-          key={card.href}
-          href={card.href}
-          className="group relative rounded-lg border border-edge bg-surface p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-edge-strong hover:shadow-sm"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <span className="rounded-md bg-surface-2 p-2 transition-colors group-hover:bg-accent/10">
-              <card.icon className="h-4 w-4 text-muted transition-colors group-hover:text-accent" strokeWidth={1.5} />
+    <Card className="p-0">
+      <div className="border-b border-edge px-4 py-3">
+        <p className="text-sm font-medium">Sections</p>
+      </div>
+      <div className="stagger divide-y divide-edge">
+        {cards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2"
+          >
+            <span className="shrink-0 rounded-md bg-surface-2 p-1.5 transition-colors group-hover:bg-accent/10">
+              <card.icon className="h-4 w-4 text-muted transition-colors group-hover:text-accent" strokeWidth={1.75} />
             </span>
-            <ArrowUpRight className="h-4 w-4 text-faint opacity-0 transition-all duration-150 group-hover:translate-x-0.5 group-hover:opacity-100" />
-          </div>
-          <p className="text-sm font-medium">{card.label}</p>
-          <p className="tnum mt-0.5 font-mono text-sm text-accent">{card.stat}</p>
-          <p className="mt-1 text-xs text-faint">{card.detail}</p>
-        </Link>
-      ))}
-    </section>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{card.label}</p>
+              <p className="truncate text-xs text-faint">{card.detail}</p>
+            </div>
+            <p className="tnum shrink-0 text-sm text-accent">{card.stat}</p>
+            <ChevronRight className="h-4 w-4 shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-100" />
+          </Link>
+        ))}
+      </div>
+    </Card>
   );
 }
 
 export function OverviewCardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-32 w-full rounded-lg" />
-      ))}
-    </div>
+    <Card className="p-0">
+      <div className="border-b border-edge px-4 py-3">
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <div className="divide-y divide-edge">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
