@@ -1,9 +1,10 @@
 import { formatPercent } from "@/lib/format";
 
 // Two-row bar funnel: signups (full track) -> paying (filled to the real
-// conversion fraction). `signups`/`paying` come straight from
-// SignupMetrics.totalSignups / .payingSubscribers — same DB-tier
-// definition already used for the signup->paid % elsewhere.
+// conversion fraction). Generic on `paying`'s source — the Overview caller
+// passes stripeMetrics.payingSubscriberCount specifically so this always
+// matches the "Paying subscribers" KPI card above it (both read Stripe's
+// live state, not the DB's webhook-replicated copy).
 export function SignupFunnel({ signups, paying }: { signups: number; paying: number }) {
   const pct = signups > 0 ? paying / signups : 0;
   const free = Math.max(signups - paying, 0);

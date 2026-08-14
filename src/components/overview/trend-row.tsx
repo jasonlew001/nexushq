@@ -24,7 +24,12 @@ export async function TrendRow() {
       <div className="flex flex-col gap-4">
         <Card>
           <SectionLabel>Funnel</SectionLabel>
-          <SignupFunnel signups={signups.totalSignups} paying={signups.payingSubscribers} />
+          {/* paying comes from stripeMetrics, not signups.payingSubscribers —
+              same live Stripe count the KPI card above shows, so the two
+              never disagree. signups.payingSubscribers reads the DB's
+              webhook-replicated tier/status instead, which can lag Stripe's
+              live state by however long the last webhook took to land. */}
+          <SignupFunnel signups={signups.totalSignups} paying={stripeMetrics.payingSubscriberCount} />
         </Card>
 
         <Card>
