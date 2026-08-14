@@ -4,14 +4,18 @@ import { getValidAccessToken, fetchAccountStats, fetchRecentMedia } from "@/lib/
 
 // Runs once/day via Vercel Cron (see vercel.json). No browser session to
 // gate with requireFounder() — Vercel's infra calls this directly — so it's
-// protected by a shared secret instead. Does two things: (1) refreshes the
-// stored token if it's within 5 days of expiring (getValidAccessToken's own
-// job, called here as the primary refresh mechanism — see the 5-day safety
-// net in src/lib/instagram.ts for what covers a missed run), (2) snapshots
-// today's follower/media/engagement stats for the followers-over-time chart.
+// protected by a shared secret instead: Vercel auto-sends
+// `Authorization: Bearer $CRON_SECRET` on every cron invocation IF (and only
+// if) the project has an env var named exactly `CRON_SECRET` — not a
+// project-specific name, that's a Vercel-reserved convention. Does two
+// things: (1) refreshes the stored token if it's within 5 days of expiring
+// (getValidAccessToken's own job, called here as the primary refresh
+// mechanism — see the 5-day safety net in src/lib/instagram.ts for what
+// covers a missed run), (2) snapshots today's follower/media/engagement
+// stats for durability beyond Instagram's ~2-year insights retention window.
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.INSTAGRAM_CRON_SECRET}`) {
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
