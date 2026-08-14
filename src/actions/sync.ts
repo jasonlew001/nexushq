@@ -14,5 +14,6 @@ export async function syncNow(): Promise<void> {
   revalidateTag("hq-stripe");
   revalidateTag("hq-stripe-revenue");
   revalidateTag("hq-anthropic");
+  revalidateTag("hq-instagram");
   revalidatePath("/", "layout");
 }

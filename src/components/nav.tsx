@@ -9,6 +9,7 @@ import {
   Users,
   Receipt,
   Database,
+  Instagram,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -32,6 +33,7 @@ const GROUPS: readonly NavGroup[] = [
       { href: "/growth", label: "Growth", icon: TrendingUp },
       { href: "/revenue", label: "Revenue", icon: CircleDollarSign },
       { href: "/customers", label: "Customers", icon: Users },
+      { href: "/social", label: "Social", icon: Instagram },
     ],
   },
   {
