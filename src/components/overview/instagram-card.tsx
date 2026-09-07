@@ -25,6 +25,20 @@ export async function InstagramCard() {
     );
   }
 
+  if (data.error) {
+    return (
+      <Card className="flex items-start gap-3">
+        <span className="rounded-md bg-surface-2 p-2">
+          <Instagram className="h-4 w-4 text-faint" strokeWidth={1.75} />
+        </span>
+        <div>
+          <p className="text-sm font-medium">Instagram</p>
+          <p className="mt-0.5 text-xs text-faint">Temporarily unavailable — refreshes automatically.</p>
+        </div>
+      </Card>
+    );
+  }
+
   const recentPoints = data.followerHistory.slice(-30).map((p) => p.value);
   const weekAgo = data.followerHistory.length > 7 ? data.followerHistory.at(-8)!.value : null;
   const current = data.followerCount ?? recentPoints.at(-1) ?? 0;

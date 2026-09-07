@@ -29,6 +29,14 @@ export async function SocialPanel() {
     );
   }
 
+  if (data.error) {
+    return (
+      <Card>
+        <EmptyState icon={Instagram} label="Instagram data is temporarily unavailable" hint={data.error} />
+      </Card>
+    );
+  }
+
   return (
     <SocialTabs
       followerCount={data.followerCount}

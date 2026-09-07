@@ -30,6 +30,12 @@ export interface InstagramMetrics {
   // comment in src/lib/instagram.ts for why it can't be used directly).
   reachHistory: DailyMetricPoint[];
   followerHistory: DailyMetricPoint[];
+  // Set when connected=true but this fetch cycle failed (Meta rate-limit or
+  // transient error) — distinct from "never connected". UI shows a degraded
+  // message instead of stale/partial numbers. Previously an uncaught throw
+  // here crashed the entire Overview page (see git history) since neither
+  // this function nor its callers had any error handling.
+  error: string | null;
 }
 
 const EMPTY: InstagramMetrics = {
@@ -40,6 +46,7 @@ const EMPTY: InstagramMetrics = {
   recentMedia: [],
   reachHistory: [],
   followerHistory: [],
+  error: null,
 };
 
 // deltas is oldest→newest, ending "today". Reconstructs each day's
@@ -55,32 +62,58 @@ function reconstructFollowerHistory(deltas: DailyMetricPoint[], currentTotal: nu
 }
 
 async function fetchInstagramMetrics(): Promise<CachedResult<InstagramMetrics>> {
-  const token = await getValidAccessToken();
+  let token;
+  try {
+    token = await getValidAccessToken();
+  } catch (err) {
+    console.error("Instagram: failed to load/refresh access token", err);
+    return {
+      data: { ...EMPTY, connected: true, error: "Couldn't refresh the Instagram connection." },
+      fetchedAt: new Date().toISOString(),
+    };
+  }
 
   if (!token) {
     return { data: EMPTY, fetchedAt: new Date().toISOString() };
   }
 
-  const [stats, insights, reachHistory, followerDeltas, recentMedia] = await Promise.all([
-    fetchAccountStats(token.igUserId, token.accessToken),
-    fetchAccountInsights(token.igUserId, token.accessToken),
-    fetchReachHistory(token.igUserId, token.accessToken),
-    fetchFollowerDeltaHistory(token.igUserId, token.accessToken),
-    fetchRecentMedia(token.igUserId, token.accessToken),
-  ]);
+  try {
+    const [stats, insights, reachHistory, followerDeltas, recentMedia] = await Promise.all([
+      fetchAccountStats(token.igUserId, token.accessToken),
+      fetchAccountInsights(token.igUserId, token.accessToken),
+      fetchReachHistory(token.igUserId, token.accessToken),
+      fetchFollowerDeltaHistory(token.igUserId, token.accessToken),
+      fetchRecentMedia(token.igUserId, token.accessToken),
+    ]);
 
-  return {
-    data: {
-      connected: true,
-      followerCount: stats.followerCount,
-      mediaCount: stats.mediaCount,
-      insights,
-      recentMedia,
-      reachHistory,
-      followerHistory: reconstructFollowerHistory(followerDeltas, stats.followerCount),
-    },
-    fetchedAt: new Date().toISOString(),
-  };
+    return {
+      data: {
+        connected: true,
+        followerCount: stats.followerCount,
+        mediaCount: stats.mediaCount,
+        insights,
+        recentMedia,
+        reachHistory,
+        followerHistory: reconstructFollowerHistory(followerDeltas, stats.followerCount),
+        error: null,
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    // Most likely cause: Meta rate-limited the burst of per-post insight
+    // calls in fetchRecentMedia, or a transient 5xx from the Graph API.
+    // Degrade this card/page instead of throwing — an uncaught error here
+    // previously crashed the whole Overview page render.
+    console.error("Instagram: failed to fetch account/media data", err);
+    return {
+      data: {
+        ...EMPTY,
+        connected: true,
+        error: "Instagram data is temporarily unavailable. It refreshes hourly, or click Sync data to retry now.",
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+  }
 }
 
 export const getInstagramMetrics = unstable_cache(fetchInstagramMetrics, ["hq-instagram-metrics"], {
