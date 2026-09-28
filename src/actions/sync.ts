@@ -13,6 +13,7 @@ export async function syncNow(): Promise<void> {
   revalidateTag("hq-users");
   revalidateTag("hq-stripe");
   revalidateTag("hq-stripe-revenue");
+  revalidateTag("hq-stripe-referrals");
   revalidateTag("hq-anthropic");
   revalidateTag("hq-instagram");
   revalidatePath("/", "layout");
