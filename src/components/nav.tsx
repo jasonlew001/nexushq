@@ -10,6 +10,7 @@ import {
   Receipt,
   Database,
   Instagram,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -39,6 +40,7 @@ const GROUPS: readonly NavGroup[] = [
   {
     label: "Manage",
     links: [
+      { href: "/requests", label: "Requests", icon: Inbox },
       { href: "/costs", label: "Costs", icon: Receipt },
       { href: "/data", label: "Data", icon: Database },
     ],

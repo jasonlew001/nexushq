@@ -43,3 +43,8 @@ export const UNASSIGNED = "unassigned";
 
 // Coaches get this share of the FIRST payment made with their referral code.
 export const COACH_REFERRAL_CUT = 0.25;
+
+// Requests inbox triage states — client-safe home (the requests list is a
+// client component). Must match the check constraint in sql/004.
+export const REQUEST_STATUSES = ["new", "in_progress", "resolved"] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
