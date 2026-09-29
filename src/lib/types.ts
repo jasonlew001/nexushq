@@ -72,6 +72,11 @@ export interface CustomerRow {
   status: SubscriptionStatus;
   stripeCustomerId: string | null;
   lifetimeRevenueCents: number | null;
+  // Live subscription whose effective charge after discounts is $0 (the
+  // 100%-off "Coach Discount" comps). These carry tier='premium' in the DB
+  // and count as active in Stripe, but are excluded from MRR and the
+  // paying-subscriber count. Decorated in customer-section only.
+  isComped: boolean;
   isPreTracking: boolean;
   // When this user last appeared in a customer CSV export (hq_customer_exports);
   // null = never exported. Decorated in customer-section only.

@@ -275,7 +275,18 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
                       c.utmSource || "—"
                     )}
                   </td>
-                  <td className="px-3 py-2 capitalize">{c.tier ?? "free"}</td>
+                  <td className="px-3 py-2">
+                    <span className="flex items-center gap-1.5">
+                      <span className="capitalize">{c.tier ?? "free"}</span>
+                      {c.isComped ? (
+                        <Badge tone="gold">
+                          <span title="100%-off coupon — $0 effective, excluded from MRR">
+                            comped
+                          </span>
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </td>
                   <td className="px-3 py-2">
                     <Badge tone={STATUS_TONE[c.status ?? ""] ?? "neutral"}>
                       {statusLabel(c.status)}

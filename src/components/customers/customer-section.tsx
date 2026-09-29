@@ -1,19 +1,31 @@
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCustomerRows, attachLifetimeRevenue, attachExportedAt } from "@/lib/data/customers";
-import { getLifetimeRevenue } from "@/lib/data/stripe-metrics";
+import {
+  getCustomerRows,
+  attachLifetimeRevenue,
+  attachExportedAt,
+  attachComped,
+} from "@/lib/data/customers";
+import { getLifetimeRevenue, getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { getExportedUsers } from "@/lib/data/exports";
 import { CustomerTable } from "./customer-table";
 
 export async function CustomerSection() {
-  const [rows, revenue, exported] = await Promise.all([
+  const [rows, revenue, stripe, exported] = await Promise.all([
     getCustomerRows(),
     getLifetimeRevenue(),
+    // Only needed for the comped flag — already cached/tagged, so this is a
+    // shared read rather than an extra Stripe walk on most renders. If
+    // Stripe is unreachable, the table still renders, just unflagged.
+    getStripeMetrics().then((r) => r.data.compedCustomerIds).catch(() => [] as string[]),
     // Degrade gracefully if migration 002 hasn't been run yet — the table
     // renders without export tracking rather than erroring the page.
     getExportedUsers().catch(() => new Map<string, string>()),
   ]);
-  const enriched = attachExportedAt(attachLifetimeRevenue(rows, revenue.data), exported);
+  const enriched = attachComped(
+    attachExportedAt(attachLifetimeRevenue(rows, revenue.data), exported),
+    stripe
+  );
 
   return (
     <Card>

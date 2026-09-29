@@ -10,7 +10,7 @@ import { MrrOverTimeChart } from "@/components/charts/mrr-over-time";
 import { ReferralTable, ReferralTableSkeleton } from "@/components/referral-table";
 import { TierDistributionChart } from "@/components/charts/tier-distribution";
 import { formatCentsWhole, formatDate, formatPercent } from "@/lib/format";
-import { Clock } from "lucide-react";
+import { Clock, UserMinus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +132,53 @@ async function RevenueSections() {
           Paying subscriptions only (comped/$0 excluded). A sub counts as renewed if it
           survived past its first billing period (+3-day grace); shelf life is from
           subscription start to end.
+        </p>
+      </Card>
+
+      <Card>
+        <SectionLabel>Canceled memberships ({metrics.churned.length})</SectionLabel>
+        {metrics.churned.length === 0 ? (
+          <EmptyState icon={UserMinus} label="Nobody has canceled yet" />
+        ) : (
+          <div className="max-h-96 overflow-y-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-surface">
+                <tr className="text-[11px] uppercase tracking-wider text-muted">
+                  <th className="py-2 pr-3 font-medium">Name</th>
+                  <th className="py-2 pr-3 font-medium">Plan</th>
+                  <th className="py-2 pr-3 font-medium">Was paying</th>
+                  <th className="py-2 pr-3 font-medium">Lasted</th>
+                  <th className="py-2 font-medium">Canceled</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-edge">
+                {metrics.churned.map((sub) => {
+                  const customer = customerByStripeId.get(sub.customerId);
+                  return (
+                    <tr key={sub.subscriptionId}>
+                      <td className="py-2 pr-3">
+                        <p className="font-medium">
+                          {customer?.name ?? sub.customerEmail ?? sub.customerId}
+                        </p>
+                        <p className="text-faint">
+                          {customer?.email ?? "no profile on file"}
+                        </p>
+                      </td>
+                      <td className="py-2 pr-3 text-muted">{sub.label}</td>
+                      <td className="tnum py-2 pr-3">{formatCentsWhole(sub.monthlyCents)}/mo</td>
+                      <td className="tnum py-2 pr-3 text-muted">{months(sub.lifetimeDays)}</td>
+                      <td className="tnum py-2 text-danger">{formatDate(sub.endedAt)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-faint">
+          Subscriptions that have actually ended, newest first. Comped ($0) accounts are
+          excluded, and subs still running until their period end appear under &ldquo;Canceling
+          within 14 days&rdquo; instead.
         </p>
       </Card>
 

@@ -45,6 +45,7 @@ export const getCustomerRows = cache(async (): Promise<CustomerRow[]> => {
       status: p.subscription_status,
       stripeCustomerId: p.stripe_customer_id,
       lifetimeRevenueCents: null,
+      isComped: false,
       isPreTracking: new Date(signedUpAt).getTime() < trackingStart && hasNoAttribution,
       exportedAt: null,
     };
@@ -57,6 +58,16 @@ export function attachExportedAt(
 ): CustomerRow[] {
   return rows.map((row) =>
     exportedByUserId.has(row.id) ? { ...row, exportedAt: exportedByUserId.get(row.id)! } : row
+  );
+}
+
+// Flags the $0-effective (comped) accounts. compedCustomerIds comes from
+// the Stripe layer, which is the only place the post-discount amount is
+// known — the DB just says tier='premium'.
+export function attachComped(rows: CustomerRow[], compedCustomerIds: string[]): CustomerRow[] {
+  const comped = new Set(compedCustomerIds);
+  return rows.map((row) =>
+    row.stripeCustomerId && comped.has(row.stripeCustomerId) ? { ...row, isComped: true } : row
   );
 }
 

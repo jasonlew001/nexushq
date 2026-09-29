@@ -38,6 +38,21 @@ export interface RetentionMetrics {
   avgActiveTenureDays: number | null;
 }
 
+export interface ChurnedSub {
+  subscriptionId: string;
+  customerId: string;
+  // Stripe's own customer email. Needed because user_profiles drops
+  // stripe_customer_id when a subscription ends, so ~half of these have no
+  // profile row left to join against — without this the row would render a
+  // raw cus_… id.
+  customerEmail: string | null;
+  label: string; // plan they were on
+  monthlyCents: number; // what they were paying, monthly-normalized
+  startedAt: string;
+  endedAt: string;
+  lifetimeDays: number;
+}
+
 export interface StripeMetrics {
   mrrCents: number;
   payingSubscriberCount: number;
@@ -58,6 +73,10 @@ export interface StripeMetrics {
     customerId: string;
     currentPeriodEnd: string;
   }[];
+  // Subscriptions that have actually ended, newest first. Same population
+  // as the retention stats above: subs that really charged money, so a
+  // comped ($0-effective) coach account ending doesn't show up as churn.
+  churned: ChurnedSub[];
 }
 
 // The three known live prices normalize by interval/interval_count rather
@@ -114,6 +133,7 @@ function effectiveMonthlyCents(
 interface NormalizedSub {
   id: string;
   customerId: string;
+  customerEmail: string | null;
   status: Stripe.Subscription.Status;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: number; // unix seconds
@@ -131,7 +151,7 @@ async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
   for await (const sub of stripe.subscriptions.list({
     status: "all",
     limit: 100,
-    expand: ["data.items.data.price", "data.discounts.source.coupon"],
+    expand: ["data.items.data.price", "data.discounts.source.coupon", "data.customer"],
   })) {
     const item = sub.items.data[0];
     const price = item?.price;
@@ -147,6 +167,8 @@ async function fetchAllSubscriptions(): Promise<NormalizedSub[]> {
     subs.push({
       id: sub.id,
       customerId: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      customerEmail:
+        typeof sub.customer === "string" || sub.customer.deleted ? null : sub.customer.email,
       status: sub.status,
       cancelAtPeriodEnd: sub.cancel_at_period_end,
       currentPeriodEnd: item.current_period_end,
@@ -300,6 +322,20 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
       currentPeriodEnd: new Date(s.currentPeriodEnd * 1000).toISOString(),
     }));
 
+  const churned: ChurnedSub[] = everPaying
+    .filter((s) => s.endedAt != null)
+    .sort((a, b) => b.endedAt! - a.endedAt!)
+    .map((s) => ({
+      subscriptionId: s.id,
+      customerId: s.customerId,
+      customerEmail: s.customerEmail,
+      label: s.label,
+      monthlyCents: Math.round(s.monthlyCents),
+      startedAt: new Date(s.createdAt * 1000).toISOString(),
+      endedAt: new Date(s.endedAt! * 1000).toISOString(),
+      lifetimeDays: Math.max(Math.round((s.endedAt! - s.createdAt) / 86_400), 0),
+    }));
+
   return {
     data: {
       mrrCents: Math.round(mrrCents),
@@ -310,6 +346,7 @@ async function fetchStripeMetrics(): Promise<CachedResult<StripeMetrics>> {
       mrrByMonth,
       retention,
       cancelingSoon,
+      churned,
     },
     fetchedAt: new Date().toISOString(),
   };
