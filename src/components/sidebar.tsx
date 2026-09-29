@@ -2,6 +2,19 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { SidebarNav, MobileNav } from "./nav";
 import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
+import { getNewRequestCount } from "@/lib/data/requests";
+
+// The nav itself is a client component (it needs usePathname), so the badge
+// count is fetched here and passed down. Suspended separately: the nav paints
+// immediately with no badge and the count swaps in, rather than the whole
+// rail waiting on a query.
+async function SidebarNavWithBadge() {
+  return <SidebarNav newRequestCount={await getNewRequestCount()} />;
+}
+
+async function MobileNavWithBadge() {
+  return <MobileNav newRequestCount={await getNewRequestCount()} />;
+}
 
 // Desktop rail: logo, grouped nav, pinned "synced" readout at the bottom.
 // Hidden below md — MobileTopBar below takes over navigation there.
@@ -15,7 +28,9 @@ export function Sidebar() {
       </Link>
 
       <div style={{ "--i": 1 } as React.CSSProperties}>
-        <SidebarNav />
+        <Suspense fallback={<SidebarNav />}>
+          <SidebarNavWithBadge />
+        </Suspense>
       </div>
 
       <div className="mt-auto px-3 pt-4" style={{ "--i": 9 } as React.CSSProperties}>
@@ -36,7 +51,9 @@ export function MobileTopBar() {
         <img src="/logo.png" alt="" className="h-7 w-7" />
         <span className="text-sm font-semibold tracking-tight">Nexus HQ</span>
       </Link>
-      <MobileNav />
+      <Suspense fallback={<MobileNav />}>
+        <MobileNavWithBadge />
+      </Suspense>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { TrendRow, TrendRowSkeleton } from "@/components/overview/trend-row";
 import { ActionStrip, ActionStripSkeleton } from "@/components/action-strip";
 import { OverviewCards, OverviewCardsSkeleton } from "@/components/overview-cards";
 import { SystemStrip, SystemStripSkeleton } from "@/components/overview/system-strip";
+import { RequestsAlert, RequestsAlertSkeleton } from "@/components/overview/requests-alert";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export default async function OverviewPage() {
     <div className="space-y-6">
       <Suspense fallback={<KpiRowSkeleton />}>
         <KpiRow />
+      </Suspense>
+
+      <Suspense fallback={<RequestsAlertSkeleton />}>
+        <RequestsAlert />
       </Suspense>
 
       <Suspense fallback={<TrendRowSkeleton />}>

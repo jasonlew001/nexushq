@@ -5,6 +5,7 @@ import {
   Users,
   Receipt,
   Database,
+  Inbox,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { getCustomerRows } from "@/lib/data/customers";
 import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
 import { getManualCosts, monthlyBurnCents } from "@/lib/data/costs";
 import { getDataFreshness } from "@/lib/data/freshness";
+import { getNewRequestCount } from "@/lib/data/requests";
 import { formatCentsWhole } from "@/lib/format";
 
 interface SectionCard {
@@ -30,14 +32,16 @@ interface SectionCard {
 // a detail page. All fetchers here are already request-cached (cache() /
 // unstable_cache), so this costs nothing beyond what the KPI row fetched.
 export async function OverviewCards() {
-  const [signups, stripe, customers, anthropic, manualCosts, freshness] = await Promise.all([
-    getSignupMetrics(),
-    getStripeMetrics(),
-    getCustomerRows(),
-    getAnthropicMetrics(),
-    getManualCosts(),
-    getDataFreshness(),
-  ]);
+  const [signups, stripe, customers, anthropic, manualCosts, freshness, newRequests] =
+    await Promise.all([
+      getSignupMetrics(),
+      getStripeMetrics(),
+      getCustomerRows(),
+      getAnthropicMetrics(),
+      getManualCosts(),
+      getDataFreshness(),
+      getNewRequestCount(),
+    ]);
 
   const pastDue = customers.filter((c) => c.status === "past_due").length;
   const monthKey = new Date().toISOString().slice(0, 7);
@@ -72,6 +76,13 @@ export async function OverviewCards() {
         pastDue > 0
           ? `${pastDue} past due · search, filter, payment history`
           : "search, filter, payment history",
+    },
+    {
+      href: "/requests",
+      label: "Requests",
+      icon: Inbox,
+      stat: newRequests > 0 ? `${newRequests} unanswered` : "all handled",
+      detail: "contact form submissions from the main site",
     },
     {
       href: "/costs",

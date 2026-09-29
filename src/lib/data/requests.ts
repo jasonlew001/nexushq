@@ -74,3 +74,28 @@ export const getContactRequests = cache(
     return { requests, triageAvailable };
   }
 );
+
+// Count of submissions still sitting at status "new" (no triage row counts
+// as new). Powers the nav badge and the Overview alert card, so it renders
+// inside the shared shell on EVERY page — it selects ids/status only, never
+// message bodies, and swallows errors to 0 rather than breaking the layout
+// (e.g. before sql/004 has been run).
+export const getNewRequestCount = cache(async (): Promise<number> => {
+  const supabase = createSupabaseServerClient();
+  const [submissions, triage] = await Promise.all([
+    supabase.from("contact_submissions").select("id"),
+    supabase.from("hq_request_triage").select("submission_id, status"),
+  ]);
+
+  if (submissions.error) return 0;
+
+  const handled = new Set(
+    ((triage.data ?? []) as unknown as { submission_id: string; status: RequestStatus }[])
+      .filter((t) => t.status !== "new")
+      .map((t) => t.submission_id)
+  );
+
+  return ((submissions.data ?? []) as unknown as { id: string }[]).filter(
+    (row) => !handled.has(row.id)
+  ).length;
+});

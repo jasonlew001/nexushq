@@ -21,6 +21,22 @@ interface NavLink {
   icon: LucideIcon;
 }
 
+// Unread-style count rendered as a red pill. Only the Requests row uses one
+// today, so the nav takes a single count rather than a generic badge map.
+function CountPill({ count, compact = false }: { count: number; compact?: boolean }) {
+  return (
+    <span
+      aria-label={`${count} unhandled`}
+      className={cn(
+        "tnum ml-auto inline-flex items-center justify-center rounded-full bg-danger font-semibold text-white",
+        compact ? "h-4 min-w-4 px-1 text-[10px]" : "h-[18px] min-w-[18px] px-1.5 text-[10px]"
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 interface NavGroup {
   label: string;
   links: readonly NavLink[];
@@ -51,7 +67,7 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-function NavItem({ link, active }: { link: NavLink; active: boolean }) {
+function NavItem({ link, active, badge }: { link: NavLink; active: boolean; badge: number }) {
   return (
     <Link
       href={link.href}
@@ -64,12 +80,13 @@ function NavItem({ link, active }: { link: NavLink; active: boolean }) {
     >
       <link.icon className={cn("h-4 w-4", active ? "text-accent" : "text-muted")} strokeWidth={1.75} />
       {link.label}
+      {badge > 0 ? <CountPill count={badge} /> : null}
     </Link>
   );
 }
 
 // The sidebar rail's vertical nav — grouped ANALYZE / MANAGE, Fieldra-style.
-export function SidebarNav() {
+export function SidebarNav({ newRequestCount = 0 }: { newRequestCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -81,7 +98,12 @@ export function SidebarNav() {
           </p>
           <div className="flex flex-col gap-0.5">
             {group.links.map((link) => (
-              <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} />
+              <NavItem
+                key={link.href}
+                link={link}
+                active={isActive(pathname, link.href)}
+                badge={link.href === "/requests" ? newRequestCount : 0}
+              />
             ))}
           </div>
         </div>
@@ -91,7 +113,7 @@ export function SidebarNav() {
 }
 
 // Flattened single-row variant for the mobile top bar (sidebar hidden below md).
-export function MobileNav() {
+export function MobileNav({ newRequestCount = 0 }: { newRequestCount?: number }) {
   const pathname = usePathname();
   const links = GROUPS.flatMap((g) => g.links);
 
@@ -110,6 +132,9 @@ export function MobileNav() {
           >
             <link.icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "text-muted")} strokeWidth={1.75} />
             {link.label}
+            {link.href === "/requests" && newRequestCount > 0 ? (
+              <CountPill count={newRequestCount} compact />
+            ) : null}
           </Link>
         );
       })}
