@@ -86,12 +86,21 @@ export async function CostsPanel() {
         <Card>
           <div className="mb-1.5 flex items-center gap-2">
             <p className="text-[11px] uppercase tracking-wider text-muted">Anthropic spend (MTD)</p>
-            <Badge tone="accent">live</Badge>
+            <Badge tone={metrics.error ? "warn" : "accent"}>{metrics.error ? "unavailable" : "live"}</Badge>
           </div>
-          <p className="tnum text-xl font-semibold">{formatCentsWhole(metrics.monthToDateCents)}</p>
-          <p className={`tnum mt-1 text-xs ${trendPct != null && trendPct >= 0 ? "text-warn" : "text-accent"}`}>
-            {trendPct == null ? "—" : `${trendPct >= 0 ? "+" : ""}${formatPercent(trendPct)} vs last month`}
-          </p>
+          {metrics.error ? (
+            <>
+              <p className="tnum text-xl font-semibold text-faint">—</p>
+              <p className="mt-1 text-xs text-warn">{metrics.error}</p>
+            </>
+          ) : (
+            <>
+              <p className="tnum text-xl font-semibold">{formatCentsWhole(metrics.monthToDateCents)}</p>
+              <p className={`tnum mt-1 text-xs ${trendPct != null && trendPct >= 0 ? "text-warn" : "text-accent"}`}>
+                {trendPct == null ? "—" : `${trendPct >= 0 ? "+" : ""}${formatPercent(trendPct)} vs last month`}
+              </p>
+            </>
+          )}
         </Card>
 
         <Card>

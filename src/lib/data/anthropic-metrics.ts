@@ -32,6 +32,10 @@ export interface AnthropicMetrics {
   // Trailing COST_HISTORY_MONTHS calendar months (oldest first, current
   // month last & partial), zero-filled — feeds the costs-vs-revenue chart.
   monthlyCost: MonthlyCost[];
+  // Set when this fetch cycle failed (Admin API 429/5xx). Same contract as
+  // Instagram's: callers show a degraded readout instead of a confident $0,
+  // which would read as "we spent nothing" rather than "we don't know".
+  error: string | null;
 }
 
 function chunkDateRange(start: Date, end: Date, maxDays = 31): { startingAt: string; endingAt: string }[] {
@@ -65,7 +69,7 @@ async function fetchUsageReportChunked(start: Date, end: Date) {
   return results.flat();
 }
 
-async function fetchAnthropicMetrics(): Promise<CachedResult<AnthropicMetrics>> {
+async function fetchAnthropicMetricsRaw(): Promise<CachedResult<AnthropicMetrics>> {
   const now = new Date();
   // First day of the month COST_HISTORY_MONTHS-1 months back, UTC — covers
   // the costs-vs-revenue chart's window (which subsumes the old 2-month
@@ -124,9 +128,43 @@ async function fetchAnthropicMetrics(): Promise<CachedResult<AnthropicMetrics>> 
   }
 
   return {
-    data: { dailyCost, dailyUsage, monthToDateCents, previousMonthCents, monthlyCost },
+    data: { dailyCost, dailyUsage, monthToDateCents, previousMonthCents, monthlyCost, error: null },
     fetchedAt: new Date().toISOString(),
   };
+}
+
+const EMPTY: AnthropicMetrics = {
+  dailyCost: [],
+  dailyUsage: [],
+  monthToDateCents: 0,
+  previousMonthCents: 0,
+  monthlyCost: [],
+  error: null,
+};
+
+// An uncaught throw here took down EVERY page, not just the cost ones:
+// RefreshedAt calls this from the sidebar, so a single Admin API 429 turned
+// the whole app into "Application error: a server-side exception". Worse,
+// unstable_cache does not cache a rejection, so every render retried and
+// kept the rate limit alive. Returning a degraded value instead means the
+// failure is cached for the hour and the retry storm stops; "Sync data"
+// (revalidateTag "hq-anthropic") forces a retry sooner.
+async function fetchAnthropicMetrics(): Promise<CachedResult<AnthropicMetrics>> {
+  try {
+    return await fetchAnthropicMetricsRaw();
+  } catch (err) {
+    console.error("Anthropic: failed to fetch usage/cost report", err);
+    const rateLimited = err instanceof Error && err.message.includes("429");
+    return {
+      data: {
+        ...EMPTY,
+        error: rateLimited
+          ? "Anthropic rate-limited the cost report. It retries hourly, or click Sync data."
+          : "Anthropic cost data is temporarily unavailable.",
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+  }
 }
 
 // Anthropic's usage/cost data updates roughly every 5 min; polling more

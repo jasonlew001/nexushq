@@ -89,7 +89,9 @@ export async function OverviewCards() {
       label: "Costs",
       icon: Receipt,
       stat: `${formatCentsWhole(burnCents)} burn MTD`,
-      detail: "Anthropic API spend + fixed costs",
+      detail: anthropic.data.error
+        ? "fixed costs only — Anthropic cost report unavailable"
+        : "Anthropic API spend + fixed costs",
     },
     {
       href: "/data",

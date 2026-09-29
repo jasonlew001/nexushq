@@ -29,7 +29,15 @@ export async function SystemStrip() {
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-      <span className="tnum">Burn MTD {formatCentsWhole(burnCents)}</span>
+      <span className="tnum">
+        Burn MTD {formatCentsWhole(burnCents)}
+        {anthropic.data.error ? (
+          <span className="text-warn" title={anthropic.data.error}>
+            {" "}
+            (excl. Anthropic)
+          </span>
+        ) : null}
+      </span>
       <span className="text-faint">·</span>
       <span className="flex items-center gap-1.5">
         <LiveDot tone={isStale ? "warn" : "accent"} />
