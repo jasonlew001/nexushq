@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { ChevronRight, Mail, Search } from "lucide-react";
+import { useCallback, useMemo, useState, useTransition } from "react";
+import { ChevronRight, Mail, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { updateRequestTriage } from "@/actions/requests";
+import { updateRequestTriage, updateRequestTriageBulk } from "@/actions/requests";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { REQUEST_STATUSES, type RequestStatus } from "@/lib/constants";
 import { cn } from "@/lib/cn";
@@ -47,20 +47,28 @@ function replyHref(req: ContactRequest): string {
 function RequestDetail({
   req,
   triageAvailable,
+  onOptimistic,
+  onRevert,
 }: {
   req: ContactRequest;
   triageAvailable: boolean;
+  onOptimistic: (id: string, status: RequestStatus) => void;
+  onRevert: (id: string) => void;
 }) {
   const [note, setNote] = useState(req.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Paint the new status immediately; the ~860ms server round trip and
+  // re-render happen behind it. Revert that one row if the write fails.
   function save(status: RequestStatus) {
     setError(null);
+    onOptimistic(req.id, status);
     startTransition(async () => {
       try {
         await updateRequestTriage(req.id, { status, note: note || null });
       } catch (err) {
+        onRevert(req.id);
         setError(err instanceof Error ? err.message : "Failed to save");
       }
     });
@@ -104,10 +112,10 @@ function RequestDetail({
               <button
                 key={status}
                 type="button"
-                disabled={isPending}
                 onClick={() => save(status)}
                 className={cn(
-                  "rounded-md border px-3 py-1.5 text-xs transition-colors disabled:opacity-50",
+                  "rounded-md border px-3 py-1.5 text-xs transition-colors",
+                  isPending && "opacity-70",
                   status === req.status
                     ? "border-accent bg-accent text-bg"
                     : "border-edge text-muted hover:text-ink"
@@ -144,21 +152,47 @@ export function RequestsList({
   const [subject, setSubject] = useState("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Locally-applied statuses so a click paints instantly. Once the server
+  // re-render lands these agree with `requests`; a failed write reverts its
+  // own id via dropOverride.
+  const [overrides, setOverrides] = useState<Record<string, RequestStatus>>({});
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [isBulkPending, startBulk] = useTransition();
+
+  const applyOverride = useCallback(
+    (id: string, status: RequestStatus) => setOverrides((o) => ({ ...o, [id]: status })),
+    []
+  );
+  const dropOverride = useCallback(
+    (id: string) =>
+      setOverrides((o) => {
+        const next = { ...o };
+        delete next[id];
+        return next;
+      }),
+    []
+  );
+
+  const rows = useMemo(
+    () => requests.map((r) => (overrides[r.id] ? { ...r, status: overrides[r.id] } : r)),
+    [requests, overrides]
+  );
 
   const subjects = useMemo(
-    () => Array.from(new Set(requests.map((r) => r.subject))).sort(),
-    [requests]
+    () => Array.from(new Set(rows.map((r) => r.subject))).sort(),
+    [rows]
   );
 
   const counts = useMemo(() => {
     const c = {} as Record<View, number>;
-    for (const v of VIEWS) c[v.key] = requests.filter((r) => matchesView(r.status, v.key)).length;
+    for (const v of VIEWS) c[v.key] = rows.filter((r) => matchesView(r.status, v.key)).length;
     return c;
-  }, [requests]);
+  }, [rows]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return requests.filter(
+    return rows.filter(
       (r) =>
         matchesView(r.status, view) &&
         (subject === "all" || r.subject === subject) &&
@@ -167,7 +201,62 @@ export function RequestsList({
           r.email.toLowerCase().includes(q) ||
           r.message.toLowerCase().includes(q))
     );
-  }, [requests, view, subject, query]);
+  }, [rows, view, subject, query]);
+
+  const selectedVisible = useMemo(
+    () => visible.filter((r) => selected.has(r.id)),
+    [visible, selected]
+  );
+  const allVisibleSelected = visible.length > 0 && selectedVisible.length === visible.length;
+  const someVisibleSelected = selectedVisible.length > 0;
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllVisible() {
+    setSelected((prev) => {
+      if (visible.every((r) => prev.has(r.id))) {
+        const next = new Set(prev);
+        for (const r of visible) next.delete(r.id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const r of visible) next.add(r.id);
+      return next;
+    });
+  }
+
+  // One upsert for the whole selection, painted optimistically first. The
+  // selection clears on success so the bar gets out of the way.
+  function saveBulk(status: RequestStatus) {
+    const ids = selectedVisible.map((r) => r.id);
+    if (ids.length === 0) return;
+    setBulkError(null);
+    setOverrides((o) => {
+      const next = { ...o };
+      for (const id of ids) next[id] = status;
+      return next;
+    });
+    setSelected(new Set());
+    startBulk(async () => {
+      try {
+        await updateRequestTriageBulk(ids, status);
+      } catch (err) {
+        setOverrides((o) => {
+          const next = { ...o };
+          for (const id of ids) delete next[id];
+          return next;
+        });
+        setBulkError(err instanceof Error ? err.message : "Failed to update");
+      }
+    });
+  }
 
   return (
     <div>
@@ -213,6 +302,52 @@ export function RequestsList({
         </select>
       </div>
 
+      {triageAvailable && visible.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-edge bg-surface-2/60 px-2.5 py-1.5">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+              }}
+              onChange={toggleAllVisible}
+              className="h-3.5 w-3.5 cursor-pointer accent-[hsl(var(--accent))]"
+            />
+            {selectedVisible.length > 0 ? `${selectedVisible.length} selected` : "Select all"}
+          </label>
+
+          {selectedVisible.length > 0 && (
+            <>
+              <span className="text-faint">·</span>
+              {REQUEST_STATUSES.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  disabled={isBulkPending}
+                  onClick={() => saveBulk(status)}
+                  className={cn(
+                    "rounded-md border border-edge bg-surface px-2.5 py-1 text-xs text-muted transition-colors hover:text-ink",
+                    isBulkPending && "opacity-60"
+                  )}
+                >
+                  Mark {STATUS_LABEL[status]}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-faint transition-colors hover:text-ink"
+              >
+                <X className="h-3 w-3" strokeWidth={2} />
+                Clear
+              </button>
+            </>
+          )}
+          {bulkError && <span className="text-xs text-danger">{bulkError}</span>}
+        </div>
+      )}
+
       {visible.length === 0 ? (
         <EmptyState
           label={requests.length === 0 ? "No requests yet" : "Nothing matches this view"}
@@ -223,7 +358,17 @@ export function RequestsList({
           {visible.map((req) => {
             const isOpen = openId === req.id;
             return (
-              <div key={req.id}>
+              <div key={req.id} className="flex items-start gap-2">
+                {triageAvailable && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(req.id)}
+                    onChange={() => toggleOne(req.id)}
+                    aria-label={`Select request from ${req.name}`}
+                    className="mt-[15px] h-3.5 w-3.5 shrink-0 cursor-pointer accent-[hsl(var(--accent))]"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => setOpenId(isOpen ? null : req.id)}
@@ -262,7 +407,15 @@ export function RequestsList({
                     {formatRelativeTime(req.createdAt)}
                   </span>
                 </button>
-                {isOpen && <RequestDetail req={req} triageAvailable={triageAvailable} />}
+                {isOpen && (
+                  <RequestDetail
+                    req={req}
+                    triageAvailable={triageAvailable}
+                    onOptimistic={applyOverride}
+                    onRevert={dropOverride}
+                  />
+                )}
+                </div>
               </div>
             );
           })}
