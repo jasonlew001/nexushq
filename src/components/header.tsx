@@ -4,11 +4,23 @@ import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { formatCentsWhole } from "@/lib/format";
 import { SyncButton } from "./sync-button";
 
+// Header chrome, rendered on every route — degrades to a dash instead of
+// throwing, for the same reason as RefreshedAt. The real MRR card on
+// Overview is inside a SectionBoundary and reports failure properly.
 async function MrrChip() {
-  const { data } = await getStripeMetrics();
+  let mrrCents: number | null = null;
+  try {
+    mrrCents = (await getStripeMetrics()).data.mrrCents;
+  } catch (err) {
+    console.error("MrrChip: Stripe fetch failed", err);
+  }
+
   return (
     <span className="tnum inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-xs text-muted">
-      MRR <span className="font-medium text-gold">{formatCentsWhole(data.mrrCents)}</span>
+      MRR{" "}
+      <span className="font-medium text-gold">
+        {mrrCents == null ? "—" : formatCentsWhole(mrrCents)}
+      </span>
     </span>
   );
 }

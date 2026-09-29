@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { PageShell } from "@/components/page-shell";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Skeleton, ShellCard } from "@/components/ui/skeleton";
@@ -259,14 +260,18 @@ export default async function RevenuePage() {
 
   return (
     <PageShell title="Revenue" description="MRR, plans, and subscription health">
-      <Suspense fallback={<RevenueSectionsSkeleton />}>
-        <RevenueSections />
-      </Suspense>
+      <SectionBoundary label="Revenue">
+        <Suspense fallback={<RevenueSectionsSkeleton />}>
+          <RevenueSections />
+        </Suspense>
+      </SectionBoundary>
 
       <div className="mt-4">
-        <Suspense fallback={<ReferralTableSkeleton />}>
-          <ReferralTable />
-        </Suspense>
+        <SectionBoundary label="Coach referrals">
+          <Suspense fallback={<ReferralTableSkeleton />}>
+            <ReferralTable />
+          </Suspense>
+        </SectionBoundary>
       </div>
     </PageShell>
   );

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { PageShell } from "@/components/page-shell";
 import { SocialPanel, SocialPanelSkeleton } from "@/components/social/social-panel";
 
@@ -10,9 +11,11 @@ export default async function SocialPage() {
 
   return (
     <PageShell title="Social" description="Instagram follower growth and post engagement">
-      <Suspense fallback={<SocialPanelSkeleton />}>
-        <SocialPanel />
-      </Suspense>
+      <SectionBoundary label="Social">
+        <Suspense fallback={<SocialPanelSkeleton />}>
+          <SocialPanel />
+        </Suspense>
+      </SectionBoundary>
     </PageShell>
   );
 }

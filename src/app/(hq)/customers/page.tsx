@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { PageShell } from "@/components/page-shell";
 import { CustomerSection, CustomerSectionSkeleton } from "@/components/customers/customer-section";
 
@@ -13,9 +14,11 @@ export default async function CustomersPage() {
       title="Customers"
       description="Every account — search, filter, click a row for payment history"
     >
-      <Suspense fallback={<CustomerSectionSkeleton />}>
-        <CustomerSection />
-      </Suspense>
+      <SectionBoundary label="Customers">
+        <Suspense fallback={<CustomerSectionSkeleton />}>
+          <CustomerSection />
+        </Suspense>
+      </SectionBoundary>
     </PageShell>
   );
 }

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { KpiRow, KpiRowSkeleton } from "@/components/kpi-row";
 import { TrendRow, TrendRowSkeleton } from "@/components/overview/trend-row";
 import { ActionStrip, ActionStripSkeleton } from "@/components/action-strip";
@@ -17,31 +18,43 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<KpiRowSkeleton />}>
-        <KpiRow />
-      </Suspense>
+      <SectionBoundary label="KPIs">
+        <Suspense fallback={<KpiRowSkeleton />}>
+          <KpiRow />
+        </Suspense>
+      </SectionBoundary>
 
-      <Suspense fallback={<RequestsAlertSkeleton />}>
-        <RequestsAlert />
-      </Suspense>
+      <SectionBoundary label="Requests">
+        <Suspense fallback={<RequestsAlertSkeleton />}>
+          <RequestsAlert />
+        </Suspense>
+      </SectionBoundary>
 
-      <Suspense fallback={<TrendRowSkeleton />}>
-        <TrendRow />
-      </Suspense>
+      <SectionBoundary label="Signups">
+        <Suspense fallback={<TrendRowSkeleton />}>
+          <TrendRow />
+        </Suspense>
+      </SectionBoundary>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Suspense fallback={<ActionStripSkeleton />}>
-          <ActionStrip />
-        </Suspense>
+        <SectionBoundary label="Needs attention">
+          <Suspense fallback={<ActionStripSkeleton />}>
+            <ActionStrip />
+          </Suspense>
+        </SectionBoundary>
 
-        <Suspense fallback={<OverviewCardsSkeleton />}>
-          <OverviewCards />
-        </Suspense>
+        <SectionBoundary label="Sections">
+          <Suspense fallback={<OverviewCardsSkeleton />}>
+            <OverviewCards />
+          </Suspense>
+        </SectionBoundary>
       </div>
 
-      <Suspense fallback={<SystemStripSkeleton />}>
-        <SystemStrip />
-      </Suspense>
+      <SectionBoundary label="System status">
+        <Suspense fallback={<SystemStripSkeleton />}>
+          <SystemStrip />
+        </Suspense>
+      </SectionBoundary>
     </div>
   );
 }

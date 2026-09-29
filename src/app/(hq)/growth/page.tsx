@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { PageShell } from "@/components/page-shell";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Skeleton, ShellCard } from "@/components/ui/skeleton";
@@ -83,9 +84,11 @@ export default async function GrowthPage() {
 
   return (
     <PageShell title="Growth" description="Signups, acquisition sources, and geography">
-      <Suspense fallback={<GrowthChartsSkeleton />}>
-        <GrowthCharts />
-      </Suspense>
+      <SectionBoundary label="Growth charts">
+        <Suspense fallback={<GrowthChartsSkeleton />}>
+          <GrowthCharts />
+        </Suspense>
+      </SectionBoundary>
     </PageShell>
   );
 }

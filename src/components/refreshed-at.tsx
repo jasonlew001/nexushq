@@ -13,17 +13,25 @@ import { formatRelativeTime } from "@/lib/format";
 // each time its hourly cache lapsed. It shares Anthropic's 1h TTL, so it
 // almost never changed the answer anyway. /customers still reads it.
 export async function RefreshedAt() {
-  const [users, stripe, anthropic] = await Promise.all([
-    getAllAuthUsers(),
-    getStripeMetrics(),
-    getAnthropicMetrics(),
-  ]);
-
-  const oldest = [users.fetchedAt, stripe.fetchedAt, anthropic.fetchedAt].sort()[0];
+  // This renders in the sidebar on every route, so a single upstream
+  // failure here would blank the whole app (it did: an Anthropic 429 took
+  // down every page). It is a decorative timestamp — it degrades to a dash
+  // rather than ever throwing.
+  let oldest: string | null = null;
+  try {
+    const [users, stripe, anthropic] = await Promise.all([
+      getAllAuthUsers(),
+      getStripeMetrics(),
+      getAnthropicMetrics(),
+    ]);
+    oldest = [users.fetchedAt, stripe.fetchedAt, anthropic.fetchedAt].sort()[0];
+  } catch (err) {
+    console.error("RefreshedAt: upstream fetch failed", err);
+  }
 
   return (
     <p className="text-xs text-faint">
-      synced <span className="tnum">{formatRelativeTime(oldest)}</span>
+      synced <span className="tnum">{oldest ? formatRelativeTime(oldest) : "—"}</span>
     </p>
   );
 }

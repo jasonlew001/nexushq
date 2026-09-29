@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireFounder } from "@/lib/auth";
+import { SectionBoundary } from "@/components/ui/section-boundary";
 import { PageShell } from "@/components/page-shell";
 import { FreshnessLedger, FreshnessLedgerSkeleton } from "@/components/data/freshness-ledger";
 
@@ -13,9 +14,11 @@ export default async function DataPage() {
       title="Data health"
       description="When each product dataset was last loaded — newest row per table"
     >
-      <Suspense fallback={<FreshnessLedgerSkeleton />}>
-        <FreshnessLedger />
-      </Suspense>
+      <SectionBoundary label="Data freshness">
+        <Suspense fallback={<FreshnessLedgerSkeleton />}>
+          <FreshnessLedger />
+        </Suspense>
+      </SectionBoundary>
       <p className="mt-4 text-xs text-faint">
         Most of these tables only stamp rows at insert time, so &ldquo;updated&rdquo; means the
         newest row loaded — an in-place edit without a timestamp column won&apos;t move it.
