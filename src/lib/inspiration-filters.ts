@@ -12,6 +12,7 @@ export const INSPO_TABS = [
   { key: "all", label: "All" },
   { key: "videos", label: "Videos & Reels" },
   { key: "slideshows", label: "Slideshows & Carousels" },
+  { key: "advice", label: "Tips & Advice" },
   { key: "favorites", label: "Favorites" },
   { key: "hidden", label: "Hidden" },
 ] as const;

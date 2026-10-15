@@ -305,6 +305,16 @@ function PostDetail({
         )}
       </div>
 
+      {post.favoritedBy.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-muted">
+          <Star className="h-3.5 w-3.5 fill-gold text-gold" strokeWidth={1.75} />
+          Starred by{" "}
+          {post.favoritedBy
+            .map((id) => (id === currentUserId ? "you" : people[id] ?? "a founder"))
+            .join(", ")}
+        </p>
+      )}
+
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
         {details.map(([label, value]) => (
           <div key={label} className="min-w-0">

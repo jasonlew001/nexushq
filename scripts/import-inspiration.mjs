@@ -4,6 +4,7 @@
 //   node scripts/import-inspiration.mjs --dry-run          # plan + cost estimate, spends nothing
 //   node scripts/import-inspiration.mjs --budget=4.5       # real run, hard spend cap in USD
 //   node scripts/import-inspiration.mjs --from-raw=<dir>   # re-normalize a saved run, spends nothing
+//   node scripts/import-inspiration.mjs --resume=<dir>     # reuse a saved run, pay only for new jobs
 //
 // Reads MONID_API_KEY, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from
 // .env.local. Raw scraper output is saved under scripts/.inspo-raw/<run>/
@@ -38,6 +39,31 @@ const SEARCHES = {
   ],
 };
 
+// Copy-ready advice slideshows ("5 drills to fix your slice") — TikTok photo
+// search only, paged deeper (~100 results/term before TikTok stops paging).
+// Everything found here counts as advice even if the caption is just
+// hashtags, since the tip text lives in the slide images.
+const ADVICE_SEARCHES = {
+  general: [
+    "golf tips", "golf swing tips", "beginner golf tips", "driver tips", "iron tips",
+    "wedge tips", "chipping tips", "pitching tips", "putting tips", "bunker tips",
+    "short game tips", "golf drills", "putting drills", "chipping drills", "golf practice routine",
+    "golf practice plan", "range session drills", "golf mistakes", "golf slice fix", "golf hook fix",
+    "how to break 80", "how to break 90", "how to break 100", "lower your handicap", "golf course management",
+    "golf strategy", "golf mental tips", "golf swing thoughts", "golf tempo", "golf grip tips",
+    "golf posture", "golf setup tips", "golf rotation", "ball striking tips", "more distance golf",
+    "golf fitness", "golf stretches", "golf warm up", "golf rules tips", "golf etiquette",
+    "golf hacks", "golf lesson", "golf advice", "golf scoring tips", "tournament golf tips",
+    "golf pre shot routine", "golf club tips", "things i wish i knew golf",
+  ],
+  recruiting: [
+    "college golf recruiting tips", "junior golf tips", "college golf advice", "golf recruiting advice",
+    "how to play college golf", "golf scholarship tips", "junior golf tournament tips",
+    "emailing college golf coaches", "college golf showcase", "golf recruiting timeline",
+  ],
+};
+const TT_ADVICE_PAGES = 6;
+
 // Instagram hashtag "top posts" — the only cheap source of viral carousels.
 const IG_HASHTAGS = {
   recruiting: [
@@ -48,7 +74,13 @@ const IG_HASHTAGS = {
     "studentathlete", "collegerecruiting", "d1commit", "athleticscholarship",
     "sportsparents", "recruitingtips",
   ],
-  general: ["golftips", "golfswing", "golfdrills", "golfmemes", "golfinstruction", "golfcoach"],
+  general: [
+    "golftips", "golfswing", "golfdrills", "golfmemes", "golfinstruction", "golfcoach",
+    // advice-heavy tags — mostly tip carousels
+    "golftipsforbeginners", "golftip", "golflessons", "puttingtips", "chippingtips", "drivertips",
+    "golfdrill", "golfpractice", "golfhacks", "shortgame", "golfswingtips", "golfadvice",
+    "golfbeginner", "coursemanagement", "golfmentalgame", "golffitness",
+  ],
 };
 
 // Recruiting services + college-golf coaches/creators found in the test
@@ -76,7 +108,6 @@ const CONCURRENCY = 6;
 // dry-run total and to stop launching jobs before the budget is crossed.
 const EST = {
   ttVideos: TT_VIDEOS_PER_SEARCH * 0.0003,
-  ttPhotos: TT_PHOTO_PAGES * 0.001,
   igReels: 0.002,
   igTop: 0.001,
   ttProfile: COMPETITOR_POSTS * 0.0003,
@@ -97,6 +128,9 @@ const args = Object.fromEntries(
 );
 const DRY_RUN = Boolean(args["dry-run"]);
 const FROM_RAW = typeof args["from-raw"] === "string" ? args["from-raw"] : null;
+// --resume=<dir>: reuse that run's saved output and only pay for jobs it lacks
+// (e.g. after adding search terms).
+const RESUME = typeof args.resume === "string" ? args.resume : null;
 const BUDGET = Number(args.budget ?? 4.5);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -114,8 +148,8 @@ for (const k of ["MONID_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) 
   if (!env[k]) throw new Error(`${k} missing from .env.local`);
 }
 
-const rawDir = FROM_RAW
-  ? path.resolve(FROM_RAW)
+const rawDir = FROM_RAW || RESUME
+  ? path.resolve(FROM_RAW || RESUME)
   : path.join(ROOT, "scripts", ".inspo-raw", new Date().toISOString().replace(/[:.]/g, "-"));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -370,6 +404,35 @@ function fromIgProfilePost(p, topic, query) {
 // ---------------------------------------------------------------------------
 const slug = (s) => s.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
+// TikTok photo-mode (slideshow) search, paged until TikTok stops or `pages`.
+function photoSearchJob(label, q, topic, pages, adviceSearch) {
+  return {
+    label,
+    est: pages * 0.001,
+    fetch: async () => {
+      const items = [];
+      let offset = 0;
+      let searchId = "";
+      for (let page = 0; page < pages; page++) {
+        const out = await monid("tikhub", "/api/v1/tiktok/web/fetch_search_photo", {
+          queryParams: { keyword: q, count: 20, offset, ...(searchId && { search_id: searchId }) },
+        });
+        const d = out?.data ?? out ?? {};
+        items.push(...(d.item_list ?? []));
+        if (!d.has_more) break;
+        offset = Number(d.cursor) || offset + 20;
+        searchId = d.log_pb?.impr_id ?? searchId;
+      }
+      return items;
+    },
+    normalize: (out) =>
+      (out ?? []).map((i) => {
+        const r = fromTikTokPhoto(i, topic, q);
+        return r && { ...r, _adviceSearch: adviceSearch };
+      }),
+  };
+}
+
 function buildJobs() {
   const jobs = []; // { label, est, fetch, normalize }
 
@@ -392,27 +455,7 @@ function buildJobs() {
         normalize: (out) => (Array.isArray(out) ? out : []).map((i) => fromTikTokSearch(i, topic, q)),
       });
 
-      jobs.push({
-        label: `tt-photos-${slug(q)}`,
-        est: EST.ttPhotos,
-        fetch: async () => {
-          const items = [];
-          let offset = 0;
-          let searchId = "";
-          for (let page = 0; page < TT_PHOTO_PAGES; page++) {
-            const out = await monid("tikhub", "/api/v1/tiktok/web/fetch_search_photo", {
-              queryParams: { keyword: q, count: 20, offset, ...(searchId && { search_id: searchId }) },
-            });
-            const d = out?.data ?? out ?? {};
-            items.push(...(d.item_list ?? []));
-            if (!d.has_more) break;
-            offset = Number(d.cursor) || offset + 20;
-            searchId = d.log_pb?.impr_id ?? searchId;
-          }
-          return items;
-        },
-        normalize: (out) => (out ?? []).map((i) => fromTikTokPhoto(i, topic, q)),
-      });
+      jobs.push(photoSearchJob(`tt-photos-${slug(q)}`, q, topic, TT_PHOTO_PAGES, false));
 
       jobs.push({
         label: `ig-reels-${slug(q)}`,
@@ -420,6 +463,12 @@ function buildJobs() {
         fetch: () => monid("tikhub", "/api/v1/instagram/v2/search_reels", { queryParams: { keyword: q } }),
         normalize: (out) => (out?.data?.items ?? []).map((i) => fromIgReelSearch(i, topic, q)),
       });
+    }
+  }
+
+  for (const [topic, queries] of Object.entries(ADVICE_SEARCHES)) {
+    for (const q of queries) {
+      jobs.push(photoSearchJob(`tt-advice-${slug(q)}`, q, topic, TT_ADVICE_PAGES, true));
     }
   }
 
@@ -462,10 +511,24 @@ function buildJobs() {
 // Search engines return loosely related posts ("college golf" -> any golf
 // meme, "student athlete" -> recipe slideshows). Check the caption+hashtags
 // actually match the topic; re-file or drop the rest.
-const GOLF_RE = /\bgolf|\bputt|\bdriver\b|fairway|birdie|\bl?pga\b|\bajga\b|tee ?shot|\bwedges?\b|\birons?\b/i;
+// "driver"/"iron"/"wedge" alone matched car and cast-iron-recipe slideshows,
+// so the word golf (or an unambiguous golf term) is required.
+const GOLF_RE = /golf|\bputt|birdie|fairway|\bl?pga\b|\bajga\b/i;
 const RECRUIT_RE =
   /recruit|\bcommit|scholarship|college|\bd[123]\b|\bnaia\b|\bncaa\b|\bjuco\b|signing day|universit|\boffers?\b|class ?of ?20|\bcoach|high ?school|\bjunior|\bajga\b|varsity|walk.?on|student.?athlete/i;
-const CAR_RE = /volkswagen|\bvw\b|\bgti\b|\bmk ?[1-8]\b|tdi|rebaixad|stance|turbo/i;
+const SPORT_RE =
+  /athlet|sport|recruit|\bd[123]\b|ncaa|naia|juco|varsity|soccer|baseball|softball|volleyball|tennis|football|basketball|lacrosse|swim|track|hockey|wrestl|golf|cheer|rowing|\bxc\b|cross country/i;
+const CAR_RE =/volkswagen|\bvw\b|\bgti\b|\bmk ?[1-8]\b|tdi|rebaixad|stance|turbo/i;
+const ADVICE_RE =
+  /\btips?\b|how to|\bdrills?\b|\bfix(es|ing)?\b|\bmistakes?\b|\blessons?\b|\bsteps?\b|ways to|\bguide\b|checklist|routine|\bdo this\b|\bstop (doing|hitting|making)|beginners?|improve|break (70|80|90|100)|handicap|swing thoughts?|\bhacks?\b|advice|technique|instruction|practice plan|things i wish|what coaches|golftips|golflessons?|golfdrills?|golfinstruction|golfcoach/i;
+
+// Advice = the caption/hashtags say so, or it's a multi-slide post found by
+// an advice search (slideshow tip text is in the images, not the caption).
+function isAdvice(r) {
+  if (ADVICE_RE.test(`${r.caption ?? ""} ${r.hashtags.join(" ")}`)) return true;
+  const slides = r.format === "slideshow" || r.format === "carousel";
+  return Boolean(r._adviceSearch) && slides && (r.slide_count ?? 2) >= 2;
+}
 
 function retopic(r) {
   if (r.topic === "competitor") return r;
@@ -473,7 +536,8 @@ function retopic(r) {
   const golf = GOLF_RE.test(text) && !CAR_RE.test(text);
   const recruit = RECRUIT_RE.test(text);
   if (r.topic === "recruiting") return golf && recruit ? r : golf ? { ...r, topic: "general" } : null;
-  if (r.topic === "adjacent") return recruit ? r : null;
+  // "college"/"offer"/"coach" alone let in internship and job-interview tips.
+  if (r.topic === "adjacent") return recruit && SPORT_RE.test(text) ? r : null;
   return golf ? r : null;
 }
 
@@ -497,6 +561,7 @@ function merge(a, b) {
     out.topic = b.topic;
     out.source_query = b.source_query;
   }
+  out._adviceSearch = Boolean(a._adviceSearch || b._adviceSearch);
   return out;
 }
 
@@ -518,11 +583,13 @@ async function main() {
   );
 
   const byKey = new Map();
+  const offTopic = new Set(); // failed the relevance check from every search that found it
   let scraped = 0;
   jobs.forEach((j, idx) => {
     if (!outputs[idx]) return;
     for (const raw of j.normalize(outputs[idx])) {
       const r = raw && retopic(raw);
+      if (raw && !r) offTopic.add(`${raw.platform}:${raw.external_id}`);
       if (!r) continue;
       scraped++;
       const key = `${r.platform}:${r.external_id}`;
@@ -573,7 +640,8 @@ async function main() {
     .map((r) => {
       const key = r.creator_username ? `u-${r.creator_username}` : r._ownerId ? `id-${r._ownerId}` : null;
       const u = key && lookups.get(key);
-      const { _ownerId, ...row } = r;
+      const { _ownerId, _adviceSearch, ...rest } = r;
+      const row = { ...rest, is_advice: isAdvice(r) };
       if (!u) return row;
       return {
         ...row,
@@ -594,6 +662,27 @@ async function main() {
     const { error } = await supabase.from("hq_inspo_posts").upsert(chunk, { onConflict: "platform,external_id" });
     if (error) throw new Error(`Upsert failed at row ${i}: ${error.message}`);
   }
+
+  // Posts an earlier, looser import let in that now fail relevance: hide
+  // rather than delete — reversible, reviewable on the Hidden tab, and any
+  // stars/notes on them survive.
+  const toHide = [...offTopic].filter((k) => !byKey.has(k));
+  let hidden = 0;
+  for (const platform of ["tiktok", "instagram"]) {
+    const ids = toHide.filter((k) => k.startsWith(`${platform}:`)).map((k) => k.slice(platform.length + 1));
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await supabase
+        .from("hq_inspo_posts")
+        .update({ hidden: true })
+        .eq("platform", platform)
+        .eq("hidden", false)
+        .in("external_id", ids.slice(i, i + 200))
+        .select("id");
+      if (error) throw new Error(`Hiding off-topic posts failed: ${error.message}`);
+      hidden += data?.length ?? 0;
+    }
+  }
+  if (hidden) log(`hid ${hidden} previously imported posts that no longer pass the relevance check`);
 
   const tally = (f) => rows.reduce((m, r) => ((m[f(r)] = (m[f(r)] ?? 0) + 1), m), {});
   log(`upserted ${rows.length} rows. Spent $${spent.toFixed(3)} this run.`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lightbulb, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -84,7 +84,13 @@ export function InspirationLibrary({
   const [boardError, setBoardError] = useState<string | null>(null);
   const [isBoardPending, startBoard] = useTransition();
 
-  useEffect(() => setSearch(filters.q), [filters.q]);
+  // The q this input last pushed — so the URL catching up doesn't clobber
+  // what's been typed since. Any other q change (Clear all, chip ×) syncs in.
+  const pushedQ = useRef(filters.q);
+  useEffect(() => {
+    if (filters.q !== pushedQ.current) setSearch(filters.q);
+    pushedQ.current = filters.q;
+  }, [filters.q]);
 
   // Every filter change resets to page 1 unless the change *is* the page.
   function go(patch: Partial<InspoFilters>) {
@@ -92,6 +98,19 @@ export function InspirationLibrary({
     // Paging jumps back to the top of the list; filter tweaks keep your place.
     startNav(() => router.push(inspoHref(next), { scroll: patch.page !== undefined }));
   }
+
+  // Search applies as you type (no Enter needed, and clearing the box clears
+  // the filter). "#tag" waits for Enter so half-typed tags don't flash 0 results.
+  useEffect(() => {
+    const q = search.trim();
+    if (q === filters.q || q.startsWith("#")) return;
+    const t = setTimeout(() => {
+      pushedQ.current = q;
+      go({ q });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   function toggleIn<T extends string>(list: T[], key: T, all: readonly T[]): T[] {
     const next = list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
@@ -131,6 +150,30 @@ export function InspirationLibrary({
     : undefined;
   const topicKeys = INSPO_TOPICS.map((t) => t.key) as InspoTopic[];
   const platformKeys = INSPO_PLATFORMS.map((p) => p.key) as InspoPlatform[];
+
+  // Every non-default filter as a removable chip, so it's always obvious why
+  // the list is shorter than the library.
+  const activeFilters: { key: string; label: string; clear: Partial<InspoFilters> }[] = [];
+  if (filters.q) activeFilters.push({ key: "q", label: `Search: “${filters.q}”`, clear: { q: "" } });
+  if (filters.tag) activeFilters.push({ key: "tag", label: `#${filters.tag}`, clear: { tag: "" } });
+  if (filters.topics.length !== topicKeys.length) {
+    const names = INSPO_TOPICS.filter((t) => filters.topics.includes(t.key)).map((t) => t.label);
+    activeFilters.push({ key: "topics", label: `Topics: ${names.join(", ")}`, clear: { topics: topicKeys } });
+  }
+  if (filters.platforms.length !== platformKeys.length) {
+    const names = INSPO_PLATFORMS.filter((p) => filters.platforms.includes(p.key)).map((p) => p.label);
+    activeFilters.push({ key: "platforms", label: `${names.join(", ")} only`, clear: { platforms: platformKeys } });
+  }
+  if (filters.since !== "all") {
+    const label = INSPO_SINCE.find((s) => s.key === filters.since)?.label ?? filters.since;
+    activeFilters.push({ key: "since", label: `Posted in last ${label}`, clear: { since: "all" } });
+  }
+  if (filters.big) activeFilters.push({ key: "big", label: "Including big accounts", clear: { big: false } });
+
+  function clearAllFilters() {
+    setSearch("");
+    go({ q: "", tag: "", topics: topicKeys, platforms: platformKeys, since: "all", big: false });
+  }
 
   return (
     <div className="space-y-4">
@@ -204,12 +247,28 @@ export function InspirationLibrary({
           >
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" strokeWidth={1.75} />
             <input
-              type="search"
+              type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search captions or creators, or #hashtag — press Enter"
-              className="w-full rounded-md border border-edge bg-surface py-1.5 pl-8 pr-2 text-xs outline-none focus:border-edge-strong"
+              placeholder="Search captions or creators, or #hashtag + Enter"
+              className={cn(
+                "w-full rounded-md border bg-surface py-1.5 pl-8 pr-7 text-xs outline-none",
+                filters.q ? "border-accent/60 bg-accent/5" : "border-edge focus:border-edge-strong"
+              )}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  if (filters.q) go({ q: "" });
+                }}
+                aria-label="Clear search"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-faint hover:text-ink"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </form>
           <label className="flex items-center gap-1.5 text-xs text-muted">
             Sort
@@ -250,7 +309,35 @@ export function InspirationLibrary({
           </label>
         </div>
 
-        {(filters.tab === "favorites" || filters.tag || activeBoard) && (
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-accent/30 bg-accent/5 px-2.5 py-1.5">
+            <span className="text-[11px] font-medium text-accent">Filtering by</span>
+            {activeFilters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => {
+                  if (f.key === "q") setSearch("");
+                  go(f.clear);
+                }}
+                aria-label={`Remove filter: ${f.label}`}
+                className="flex max-w-full items-center gap-1 rounded-full border border-accent/30 bg-surface px-2 py-0.5 text-[11px] text-accent transition-colors hover:border-accent"
+              >
+                <span className="truncate">{f.label}</span>
+                <X className="h-3 w-3 shrink-0" />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="ml-auto text-[11px] text-muted underline-offset-2 hover:text-ink hover:underline"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
+        {(filters.tab === "favorites" || activeBoard) && (
           <div className="flex flex-wrap items-center gap-2">
             {filters.tab === "favorites" &&
               INSPO_FAV_SCOPES.map((s) => (
@@ -266,16 +353,6 @@ export function InspirationLibrary({
                   {s.label}
                 </button>
               ))}
-            {filters.tag && (
-              <button
-                type="button"
-                onClick={() => go({ tag: "" })}
-                className="flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] text-accent"
-              >
-                #{filters.tag}
-                <X className="h-3 w-3" />
-              </button>
-            )}
             {activeBoard && (
               <button
                 type="button"
@@ -293,7 +370,10 @@ export function InspirationLibrary({
       {/* Results */}
       <div className={cn("transition-opacity", isNavigating && "opacity-50")}>
         <div className="mb-1 flex items-center justify-between text-xs text-muted">
-          <span className="tnum">{data.total.toLocaleString()} posts</span>
+          <span className="tnum">
+            {data.total.toLocaleString()} {activeFilters.length > 0 ? "matching posts" : "posts"}
+            {isNavigating && <span className="ml-2 text-faint">Updating…</span>}
+          </span>
           {totalPages > 1 && (
             <span className="tnum">
               Page {filters.page} of {totalPages}

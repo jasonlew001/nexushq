@@ -198,6 +198,8 @@ export async function getInspoPage(filters: InspoFilters, currentUserId: string)
   else if (restrictIds === null) query = query.eq("hidden", false);
   if (filters.tab === "videos") query = query.in("format", VIDEO_FORMATS);
   if (filters.tab === "slideshows") query = query.in("format", SLIDE_FORMATS);
+  // Copy-ready advice slideshows/carousels (sql/008, set by the import).
+  if (filters.tab === "advice") query = query.eq("is_advice", true).in("format", SLIDE_FORMATS);
 
   query = query.in("topic", filters.topics).in("platform", filters.platforms);
   if (!filters.big) {
