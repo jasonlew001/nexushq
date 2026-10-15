@@ -51,6 +51,13 @@ function safePostUrl(url: string): string | null {
   return /^https:\/\/(www\.)?(tiktok\.com|instagram\.com)\//.test(url) ? url : null;
 }
 
+// "3d ago" is useful for fresh posts; "959d ago" isn't — switch to a date.
+function fmtAge(iso: string): string {
+  const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
+  if (days < 30) return formatRelativeTime(iso);
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
 function initials(name: string): string {
   return name.slice(0, 1).toUpperCase();
 }
@@ -142,14 +149,14 @@ export function PostRow({
               <span className="flex items-center gap-1 text-muted">
                 {isVideo ? <Play className="h-3 w-3" strokeWidth={2} /> : <Images className="h-3 w-3" strokeWidth={2} />}
                 {FORMAT_LABEL[post.format]}
-                {post.slideCount ? ` · ${post.slideCount} slides` : ""}
+                {post.slideCount ? ` · ${post.slideCount} slide${post.slideCount === 1 ? "" : "s"}` : ""}
               </span>
               <span className="flex min-w-0 items-center gap-1 font-medium text-ink">
                 <span className="truncate">@{post.creatorUsername ?? "unknown"}</span>
                 {post.creatorVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-accent" strokeWidth={2} />}
               </span>
               <span className="tnum text-faint">{fmtCount(post.creatorFollowers)} followers</span>
-              {post.postedAt && <span className="text-faint">{formatRelativeTime(post.postedAt)}</span>}
+              {post.postedAt && <span className="text-faint">{fmtAge(post.postedAt)}</span>}
             </div>
             {post.caption && (
               <p className="mt-1 line-clamp-2 break-words text-[13px] leading-snug text-ink/90">{post.caption}</p>
