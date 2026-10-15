@@ -11,6 +11,7 @@ import {
   Database,
   Instagram,
   Inbox,
+  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -51,6 +52,7 @@ const GROUPS: readonly NavGroup[] = [
       { href: "/revenue", label: "Revenue", icon: CircleDollarSign },
       { href: "/customers", label: "Customers", icon: Users },
       { href: "/social", label: "Social", icon: Instagram },
+      { href: "/inspiration", label: "Inspiration", icon: Lightbulb },
     ],
   },
   {

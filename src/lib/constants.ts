@@ -48,3 +48,32 @@ export const COACH_REFERRAL_CUT = 0.25;
 // client component). Must match the check constraint in sql/004.
 export const REQUEST_STATUSES = ["new", "in_progress", "resolved"] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+
+// Inspiration library — client-safe home (the filter bar is a client
+// component). Topic values must match the check constraint in sql/006.
+export const INSPO_TOPICS = [
+  { key: "recruiting", label: "Golf recruiting" },
+  { key: "adjacent", label: "Other recruiting niches" },
+  { key: "general", label: "General golf" },
+  { key: "competitor", label: "Competitors & coaches" },
+] as const;
+export type InspoTopic = (typeof INSPO_TOPICS)[number]["key"];
+
+export const INSPO_SORTS = [
+  { key: "outlier", label: "Outlier (views ÷ followers)" },
+  { key: "views", label: "Views" },
+  { key: "likes", label: "Likes" },
+  { key: "comments", label: "Comments" },
+  { key: "shares", label: "Shares" },
+  { key: "saves", label: "Saves" },
+  { key: "save_rate", label: "Save rate" },
+  { key: "share_rate", label: "Share rate" },
+  { key: "engagement", label: "Engagement rate" },
+  { key: "recent", label: "Newest" },
+] as const;
+export type InspoSort = (typeof INSPO_SORTS)[number]["key"];
+
+// Accounts above this are hidden by default — their reach comes from the
+// name, not the content. "Include big accounts" toggles them back in.
+export const INSPO_BIG_ACCOUNT_FOLLOWERS = 500_000;
+export const INSPO_PAGE_SIZE = 50;

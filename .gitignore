@@ -22,3 +22,6 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# inspiration import raw scraper output (re-normalize with --from-raw)
+/scripts/.inspo-raw/
