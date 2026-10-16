@@ -3,8 +3,10 @@
 // so both sides always agree on what a URL means.
 import {
   INSPO_SORTS,
+  INSPO_THEMES,
   INSPO_TOPICS,
   type InspoSort,
+  type InspoTheme,
   type InspoTopic,
 } from "@/lib/constants";
 
@@ -47,6 +49,7 @@ export interface InspoFilters {
   sort: InspoSort;
   q: string;
   tag: string;
+  theme: InspoTheme | "";
   topics: InspoTopic[];
   platforms: InspoPlatform[];
   big: boolean;
@@ -64,6 +67,7 @@ export const DEFAULT_INSPO_FILTERS: InspoFilters = {
   sort: "outlier",
   q: "",
   tag: "",
+  theme: "",
   topics: ALL_TOPICS,
   platforms: ALL_PLATFORMS,
   big: false,
@@ -98,6 +102,7 @@ export function parseInspoFilters(params: Params): InspoFilters {
     sort: pickOne(first(params.sort), INSPO_SORTS.map((s) => s.key), "outlier"),
     q: first(params.q).slice(0, 100),
     tag: first(params.tag).replace(/^#/, "").toLowerCase().slice(0, 100),
+    theme: pickOne(first(params.theme), ["", ...INSPO_THEMES.map((t) => t.key)] as const, ""),
     topics: pickList(first(params.topics), ALL_TOPICS),
     platforms: pickList(first(params.platforms), ALL_PLATFORMS),
     big: first(params.big) === "1",
@@ -115,6 +120,7 @@ export function inspoHref(filters: InspoFilters): string {
   if (filters.sort !== d.sort) p.set("sort", filters.sort);
   if (filters.q) p.set("q", filters.q);
   if (filters.tag) p.set("tag", filters.tag);
+  if (filters.theme) p.set("theme", filters.theme);
   if (filters.topics.length !== ALL_TOPICS.length) p.set("topics", filters.topics.join(","));
   if (filters.platforms.length !== ALL_PLATFORMS.length) p.set("platforms", filters.platforms.join(","));
   if (filters.big) p.set("big", "1");

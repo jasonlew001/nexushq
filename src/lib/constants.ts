@@ -77,3 +77,36 @@ export type InspoSort = (typeof INSPO_SORTS)[number]["key"];
 // name, not the content. "Include big accounts" toggles them back in.
 export const INSPO_BIG_ACCOUNT_FOLLOWERS = 500_000;
 export const INSPO_PAGE_SIZE = 50;
+
+// Inspiration themes — keys must match THEMES in
+// scripts/import-inspiration.mjs (the import tags each post with one).
+export const INSPO_THEMES = [
+  { key: "recruiting-process", label: "Recruiting process", group: "recruiting" },
+  { key: "contacting-coaches", label: "Contacting coaches", group: "recruiting" },
+  { key: "what-coaches-want", label: "What coaches want", group: "recruiting" },
+  { key: "school-fit", label: "School fit & divisions", group: "recruiting" },
+  { key: "scholarships", label: "Scholarships", group: "recruiting" },
+  { key: "commitment-signing", label: "Commitments & signing", group: "recruiting" },
+  { key: "tournaments-showcases", label: "Tournaments & showcases", group: "recruiting" },
+  { key: "sports-parents", label: "Sports parents", group: "recruiting" },
+  { key: "student-athlete-life", label: "Student-athlete life", group: "recruiting" },
+  { key: "humor", label: "Humor & memes", group: "golf" },
+  { key: "fixes", label: "Fixing a miss (slice, hook…)", group: "golf" },
+  { key: "putting", label: "Putting", group: "golf" },
+  { key: "short-game", label: "Short game", group: "golf" },
+  { key: "driver", label: "Driver & distance", group: "golf" },
+  { key: "irons", label: "Irons & ball striking", group: "golf" },
+  { key: "setup-grip", label: "Setup & grip", group: "golf" },
+  { key: "range-practice", label: "Range & practice plans", group: "golf" },
+  { key: "course-strategy", label: "Course strategy & scoring", group: "golf" },
+  { key: "mental-game", label: "Mental game", group: "golf" },
+  { key: "fitness", label: "Fitness & mobility", group: "golf" },
+  { key: "swing-basics", label: "Swing basics", group: "golf" },
+  { key: "beginner", label: "Beginner basics", group: "golf" },
+  { key: "equipment", label: "Equipment", group: "golf" },
+] as const;
+export type InspoTheme = (typeof INSPO_THEMES)[number]["key"];
+
+// A creator "proves" a theme with one post at or above this many views
+// (accounts over INSPO_BIG_ACCOUNT_FOLLOWERS are left out of insights).
+export const INSPO_PROVEN_VIEWS = 100_000;

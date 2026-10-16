@@ -10,6 +10,7 @@ import {
   INSPO_BIG_ACCOUNT_FOLLOWERS,
   INSPO_PAGE_SIZE,
   INSPO_SORTS,
+  INSPO_THEMES,
   INSPO_TOPICS,
   type InspoSort,
   type InspoTopic,
@@ -156,6 +157,10 @@ export function InspirationLibrary({
   const activeFilters: { key: string; label: string; clear: Partial<InspoFilters> }[] = [];
   if (filters.q) activeFilters.push({ key: "q", label: `Search: “${filters.q}”`, clear: { q: "" } });
   if (filters.tag) activeFilters.push({ key: "tag", label: `#${filters.tag}`, clear: { tag: "" } });
+  if (filters.theme) {
+    const label = INSPO_THEMES.find((t) => t.key === filters.theme)?.label ?? filters.theme;
+    activeFilters.push({ key: "theme", label: `Theme: ${label}`, clear: { theme: "" } });
+  }
   if (filters.topics.length !== topicKeys.length) {
     const names = INSPO_TOPICS.filter((t) => filters.topics.includes(t.key)).map((t) => t.label);
     activeFilters.push({ key: "topics", label: `Topics: ${names.join(", ")}`, clear: { topics: topicKeys } });
@@ -172,7 +177,7 @@ export function InspirationLibrary({
 
   function clearAllFilters() {
     setSearch("");
-    go({ q: "", tag: "", topics: topicKeys, platforms: platformKeys, since: "all", big: false });
+    go({ q: "", tag: "", theme: "", topics: topicKeys, platforms: platformKeys, since: "all", big: false });
   }
 
   return (

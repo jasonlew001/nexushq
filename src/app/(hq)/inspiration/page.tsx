@@ -7,6 +7,7 @@ import {
   InspirationPanelSkeleton,
 } from "@/components/inspiration/inspiration-panel";
 import { parseInspoFilters } from "@/lib/inspiration-filters";
+import { InspirationSwitcher } from "@/components/inspiration/inspiration-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function InspirationPage({
       title="Inspiration"
       description="Viral golf and recruiting reels and slideshows — sorted by what outperformed its creator's audience"
     >
+      <InspirationSwitcher active="library" />
       <SectionBoundary label="Inspiration">
         <Suspense fallback={<InspirationPanelSkeleton />}>
           <InspirationPanel filters={filters} currentUserId={founder.userId} />

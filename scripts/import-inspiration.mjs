@@ -522,6 +522,52 @@ const CAR_RE =/volkswagen|\bvw\b|\bgti\b|\bmk ?[1-8]\b|tdi|rebaixad|stance|turbo
 const ADVICE_RE =
   /\btips?\b|how to|\bdrills?\b|\bfix(es|ing)?\b|\bmistakes?\b|\blessons?\b|\bsteps?\b|ways to|\bguide\b|checklist|routine|\bdo this\b|\bstop (doing|hitting|making)|beginners?|improve|break (70|80|90|100)|handicap|swing thoughts?|\bhacks?\b|advice|technique|instruction|practice plan|things i wish|what coaches|golftips|golflessons?|golfdrills?|golfinstruction|golfcoach/i;
 
+// What a post teaches or covers, for the Insights view. First match wins, so
+// specific themes sit above broad ones (a slice fix is "fixes", not "swing").
+// Matched on caption + hashtags + the search that found it. Keys must match
+// INSPO_THEMES in src/lib/constants.ts.
+const THEMES = [
+  // recruiting
+  ["contacting-coaches", /email(ing)? (college )?coach|coach(es)? email|message coaches|dm(ing)? coaches|reach(ing)? out to coaches|recruiting email|subject line/i],
+  ["what-coaches-want", /what (college )?coaches (look|want|see)|coaches look for|coaches want|stand out to coaches/i],
+  ["school-fit", /school list|college list|(college|program|school|academic|athletic) fit|d1 vs|\bd[123]\b.*\bd[123]\b|naia|juco|division (1|2|3|i)\b|right (school|program|college)/i],
+  ["scholarships", /scholarship|athletic (aid|money)|financial aid|full ride/i],
+  ["commitment-signing", /\bcommit(ted|ment)?\b|signing day|signed (with|to)|\bnli\b/i],
+  ["tournaments-showcases", /tournament|showcase|\bajga\b|\bexposure\b|junior tour/i],
+  ["recruiting-process", /recruit|timeline|play college golf|college golf|get recruited|ncaa (rules|calendar)/i],
+  ["sports-parents", /\bparents?\b|golf (mom|dad)|sports (mom|dad)/i],
+  ["student-athlete-life", /student.?athlete|college athlete|balanc(e|ing) (school|sports)|athlete life/i],
+  // memes before skills: a meme about putting is a meme
+  ["humor", /funny|meme|humou?r|\blol\b|😂|🤣|joke|relatable|comedy/i],
+  // golf skill
+  ["fixes", /\bslice\b|\bhook\b|shank|topping|chunk|\bfat\b|\bthin\b|\bfix\b|stop (hitting|slicing)/i],
+  ["putting", /\bputt|green reading|\blag\b/i],
+  ["short-game", /\bchip|\bpitch|\bwedges?\b|bunker|short game|around the green|flop/i],
+  ["driver", /\bdriver\b|tee shot|\bdistance\b|swing speed|\bdrives?\b/i],
+  ["irons", /\birons?\b|ball striking|compress|\bstrike\b/i],
+  ["setup-grip", /\bgrip\b|posture|\bsetup\b|\bstance\b|alignment|ball position/i],
+  ["range-practice", /range session|practice (plan|routine|session|drill)|\bdrills?\b|practice like|range day/i],
+  ["course-strategy", /course management|strategy|break (70|80|90|100)|scoring|lower (your )?(handicap|score)|\bhandicap\b/i],
+  ["mental-game", /mental|confidence|nerves|pressure|\bfocus\b|mindset|routine/i],
+  ["fitness", /fitness|workout|\bgym\b|stretch|mobility|warm ?up|strength/i],
+  ["swing-basics", /\bswing\b|backswing|downswing|takeaway|rotation|tempo|sequenc/i],
+  ["beginner", /beginner|new to golf|starting golf|\bbasics\b/i],
+  ["equipment", /club fitting|equipment|\bshaft\b|golf balls?\b|\bclubs\b/i],
+];
+
+// Posts that work because of who posted them — excluded from "what can we
+// copy". Memes stay ("humor" is a copyable format); diaries and POVs don't.
+const PERSONAL_RE =
+  /\bpov\b|day in (my|the) life|\bditl\b|i (just |officially )?committed|officially committed|\bmy (first|last|dad|mom|boyfriend|girlfriend|husband|wife|son|daughter|journey|story)\b|grwm|storytime|\bvlog\b|birthday|throwback|\bootd\b|outfit/i;
+
+// The post's own words first; the search that found it only as a fallback
+// (searches pull in loosely related posts, so they shouldn't override).
+function themeOf(r) {
+  const own = `${r.caption ?? ""} ${r.hashtags.join(" ")}`;
+  const match = (text) => THEMES.find(([, re]) => re.test(text))?.[0] ?? null;
+  return match(own) ?? match(r.source_query ?? "");
+}
+
 // Advice = the caption/hashtags say so, or it's a multi-slide post found by
 // an advice search (slideshow tip text is in the images, not the caption).
 function isAdvice(r) {
@@ -641,7 +687,12 @@ async function main() {
       const key = r.creator_username ? `u-${r.creator_username}` : r._ownerId ? `id-${r._ownerId}` : null;
       const u = key && lookups.get(key);
       const { _ownerId, _adviceSearch, ...rest } = r;
-      const row = { ...rest, is_advice: isAdvice(r) };
+      const row = {
+        ...rest,
+        is_advice: isAdvice(r),
+        theme: themeOf(r),
+        is_personal: PERSONAL_RE.test(`${r.caption ?? ""} ${r.hashtags.join(" ")}`),
+      };
       if (!u) return row;
       return {
         ...row,

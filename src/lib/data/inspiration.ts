@@ -210,6 +210,7 @@ export async function getInspoPage(filters: InspoFilters, currentUserId: string)
     query = query.gte("posted_at", new Date(Date.now() - sinceDays * 86_400_000).toISOString());
   }
   if (filters.tag) query = query.contains("hashtags", [filters.tag]);
+  if (filters.theme) query = query.eq("theme", filters.theme);
   const q = sanitizeSearch(filters.q);
   if (q) query = query.or(`caption.ilike.*${q}*,creator_username.ilike.*${q}*,creator_name.ilike.*${q}*`);
 
