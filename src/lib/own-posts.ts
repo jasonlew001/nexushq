@@ -43,7 +43,10 @@ const num = (v: unknown): number | null => {
   return v === null || v === undefined || !Number.isFinite(n) || n < 0 ? null : Math.round(n);
 };
 
-async function savePosts(admin: SupabaseClient, posts: OwnPost[]): Promise<number> {
+async function savePosts(admin: SupabaseClient, input: OwnPost[]): Promise<number> {
+  // Scrapes can list a post twice (pinned posts reappear in the feed), and
+  // an upsert batch can't touch the same row twice. Last copy wins.
+  const posts = Array.from(new Map(input.map((p) => [p.external_id, p])).values());
   if (!posts.length) return 0;
   const platform = posts[0].platform;
 

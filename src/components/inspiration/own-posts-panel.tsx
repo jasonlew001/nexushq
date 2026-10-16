@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { getOwnPosts, MIN_POSTS, type OwnGroupRow, type OwnSort, type Verdict } from "@/lib/data/own-posts";
+import { getOwnPosts, MIN_AGE_DAYS, MIN_POSTS, type OwnGroupRow, type OwnSort, type Verdict } from "@/lib/data/own-posts";
 import { OwnThemeSelect } from "./own-theme-select";
 
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
@@ -101,7 +101,7 @@ export async function OwnPostsPanel({ sort }: { sort: OwnSort }) {
 
       <p className="text-xs text-muted">
         “Views” in these tables is a post&apos;s views ÷ our usual on that platform, so 2.0× means twice our normal reach.
-        Working = 1.25× or better, not working = 0.8× or worse; groups under {MIN_POSTS} posts don&apos;t get a verdict.
+        Working = 1.25× or better, not working = 0.8× or worse; groups under {MIN_POSTS} posts don&apos;t get a verdict. Posts under {MIN_AGE_DAYS} days old are left out of these verdicts while they collect views.
         {data.lastSynced && <> Last synced {formatRelativeTime(data.lastSynced)}.</>}
       </p>
 

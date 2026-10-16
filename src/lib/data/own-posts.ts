@@ -8,6 +8,9 @@ import { getInsights, hookOf, HOOK_LABELS, median } from "@/lib/data/inspiration
 // theme. A group needs MIN_POSTS before it gets a verdict.
 
 export const MIN_POSTS = 3;
+// Posts younger than this are still collecting views, so they stay out of
+// the group verdicts (they still appear in the per-post table).
+export const MIN_AGE_DAYS = 7;
 
 export type OwnSort = "newest" | "views" | "index" | "saves";
 
@@ -179,6 +182,7 @@ export async function getOwnPosts(sort: OwnSort): Promise<OwnPostsData> {
   });
 
   const libraryByTheme = new Map(insights.themes.map((t) => [t.theme, t.medianSaveRate]));
+  const settled = posts.filter((p) => Date.now() - Date.parse(p.postedAt) >= MIN_AGE_DAYS * 86_400_000);
 
   const sorted = [...posts];
   if (sort === "views") sorted.sort((a, b) => (b.views ?? -1) - (a.views ?? -1));
@@ -194,13 +198,13 @@ export async function getOwnPosts(sort: OwnSort): Promise<OwnPostsData> {
     medianViews: platformMedian,
     medianSaveRate: median(posts.map((p) => p.saveRate).filter((v): v is number => v !== null)),
     byTheme: group(
-      posts,
+      settled,
       (p) => p.theme,
       (k) => THEME_LABEL[k] ?? k,
       (k) => libraryByTheme.get(k as InspoTheme) ?? null
     ),
-    byHook: group(posts, (p) => p.hook, (k) => HOOK_LABELS[k] ?? k),
-    byFormat: group(posts, (p) => p.format, (k) => FORMAT_LABEL[k] ?? k),
+    byHook: group(settled, (p) => p.hook, (k) => HOOK_LABELS[k] ?? k),
+    byFormat: group(settled, (p) => p.format, (k) => FORMAT_LABEL[k] ?? k),
     lastSynced: rows.reduce<string | null>((max, r) => (!max || r.updated_at > max ? r.updated_at : max), null),
   };
 }
