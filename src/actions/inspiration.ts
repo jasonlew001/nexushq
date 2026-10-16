@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireFounder } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { INSPO_THEMES } from "@/lib/constants";
 
 // All writes are founder-session; RLS (sql/005) is the real gate — own-row
 // only for favorites and notes, `hidden` is the only post column writable.
@@ -87,4 +88,19 @@ export async function deleteNote(noteId: string): Promise<void> {
   const supabase = createSupabaseServerClient();
   const { error } = await supabase.from("hq_inspo_notes").delete().eq("id", noteId);
   done(error, "delete note");
+}
+
+// Correct the auto-tagged theme on one of our own posts. Marks it
+// founder-set so the daily sync stops re-tagging it (sql/010).
+export async function setOwnPostTheme(postId: string, theme: string | null): Promise<void> {
+  await requireFounder();
+  assertId(postId);
+  if (theme !== null && !INSPO_THEMES.some((t) => t.key === theme)) throw new Error("Unknown theme");
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from("hq_own_posts")
+    .update({ theme, theme_set_by_founder: true })
+    .eq("id", postId);
+  if (error) throw new Error(`Failed to set theme: ${error.message}`);
+  revalidatePath("/inspiration/ours");
 }

@@ -108,7 +108,7 @@ interface Row {
 const SLIDE_FORMATS = new Set(["slideshow", "carousel", "image"]);
 const THEME_META = new Map<string, (typeof INSPO_THEMES)[number]>(INSPO_THEMES.map((t) => [t.key, t]));
 
-function median(values: number[]): number | null {
+export function median(values: number[]): number | null {
   if (!values.length) return null;
   const s = [...values].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
@@ -130,7 +130,8 @@ function bucket(key: string, label: string, rows: Row[]): BucketRow {
 }
 
 // How a caption opens. First match wins; checked on the first ~100 chars.
-const HOOKS: { key: string; label: string; re: RegExp }[] = [
+// Shared with the own-posts page so both sides bucket captions the same way.
+export const HOOKS: { key: string; label: string; re: RegExp }[] = [
   { key: "save", label: "Save prompt (“Save this for…”)", re: /^\W*(save|bookmark)\b|save (this|for)/i },
   { key: "number", label: "Numbered list (“5 drills…”)", re: /^\W*(top )?\d+\s+(\w+\s+)?(tips?|things|ways|drills?|mistakes|steps|reasons|keys|rules|signs|habits|questions|lessons)/i },
   { key: "how", label: "How-to (“How to…”)", re: /^\W*how (to|i|you)\b/i },
@@ -140,6 +141,16 @@ const HOOKS: { key: string; label: string; re: RegExp }[] = [
   { key: "question", label: "Question", re: /^[^.!\n#]{3,90}\?/ },
   { key: "tags", label: "Hashtags only", re: /^\s*#/ },
 ];
+
+export function hookOf(caption: string | null): string {
+  const opening = (caption ?? "").slice(0, 100);
+  return HOOKS.find((h) => h.re.test(opening))?.key ?? "other";
+}
+
+export const HOOK_LABELS: Record<string, string> = Object.fromEntries([
+  ...HOOKS.map((h) => [h.key, h.label]),
+  ["other", "Other / statement"],
+]);
 
 async function fetchAll(): Promise<Row[]> {
   const supabase = createSupabaseServerClient();
@@ -229,8 +240,7 @@ export async function getInsights(filters: InsightsFilters): Promise<InsightsDat
 
   const hookGroups = new Map<string, Row[]>();
   for (const r of rows) {
-    const opening = (r.caption ?? "").slice(0, 100);
-    const key = HOOKS.find((h) => h.re.test(opening))?.key ?? "other";
+    const key = hookOf(r.caption);
     if (!hookGroups.has(key)) hookGroups.set(key, []);
     hookGroups.get(key)!.push(r);
   }
@@ -268,7 +278,8 @@ export async function getInsights(filters: InsightsFilters): Promise<InsightsDat
   for (const r of slideRows) {
     if (r.save_rate === null || Number(r.save_rate) < p75 || !r.sound) continue;
     const name = r.sound.trim();
-    if (/^(original sound|son original|sonido original|オリジナル楽曲)/i.test(name)) continue;
+    // "original sound" in any language is the creator's own audio, not a pick.
+    if (/original|originalton|оригинальный|オリジナル|原声|suono|son orig/i.test(name)) continue;
     if (!soundMap.has(name)) soundMap.set(name, []);
     soundMap.get(name)!.push(r);
   }

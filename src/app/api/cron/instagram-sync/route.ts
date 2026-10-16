@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-server";
 import { getValidAccessToken, fetchAccountStats, fetchRecentMedia } from "@/lib/instagram";
+import { syncInstagramOwnPosts, syncTikTokOwnPosts } from "@/lib/own-posts";
 
 // Runs once/day via Vercel Cron (see vercel.json). No browser session to
 // gate with requireFounder() — Vercel's infra calls this directly — so it's
@@ -49,5 +50,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ status: "ok", followerCount: stats.followerCount });
+  // Our own posts for /inspiration/ours (sql/010). Each platform is
+  // contained so one failing never loses the other or the snapshot above.
+  const ownPosts: Record<string, unknown> = {};
+  try {
+    ownPosts.instagram = await syncInstagramOwnPosts(admin, media);
+  } catch (e) {
+    ownPosts.instagramError = e instanceof Error ? e.message : String(e);
+  }
+  try {
+    ownPosts.tiktok = await syncTikTokOwnPosts(admin);
+  } catch (e) {
+    ownPosts.tiktokError = e instanceof Error ? e.message : String(e);
+  }
+
+  return NextResponse.json({ status: "ok", followerCount: stats.followerCount, ownPosts });
 }
