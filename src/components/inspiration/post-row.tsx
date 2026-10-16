@@ -20,6 +20,7 @@ import { INSPO_TOPICS } from "@/lib/constants";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { InspoBoard, InspoPost } from "@/lib/data/inspiration";
+import { BriefButton } from "./brief-button";
 
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -336,6 +337,7 @@ function PostDetail({
             Open on {post.platform === "tiktok" ? "TikTok" : "Instagram"}
           </a>
         )}
+        <BriefButton kind="post" id={post.id} label="Carousel brief" />
         <button
           type="button"
           onClick={() => save(() => setHidden(post.id, !post.hidden))}

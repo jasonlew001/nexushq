@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   INSPO_BIG_ACCOUNT_FOLLOWERS,
@@ -152,7 +153,9 @@ export const HOOK_LABELS: Record<string, string> = Object.fromEntries([
   ["other", "Other / statement"],
 ]);
 
-async function fetchAll(): Promise<Row[]> {
+// cache(): a brief asks for insights twice (all formats + slideshows only);
+// one library read per request instead of two.
+const fetchAll = cache(async (): Promise<Row[]> => {
   const supabase = createSupabaseServerClient();
   const rows: Row[] = [];
   // PostgREST caps a response at 1000 rows; page through.
@@ -170,7 +173,7 @@ async function fetchAll(): Promise<Row[]> {
     if ((data ?? []).length < 1000) break;
   }
   return rows;
-}
+});
 
 export async function getInsights(filters: InsightsFilters): Promise<InsightsData> {
   const all = await fetchAll();

@@ -110,3 +110,30 @@ export type InspoTheme = (typeof INSPO_THEMES)[number]["key"];
 // A creator "proves" a theme with one post at or above this many views
 // (accounts over INSPO_BIG_ACCOUNT_FOLLOWERS are left out of insights).
 export const INSPO_PROVEN_VIEWS = 100_000;
+
+// The Social Media Carousels design system (claude.ai artifact) that carousel
+// briefs point a Claude window at. Its carousels.md holds the slide rules.
+export const NEXUS_DESIGN_SYSTEM_URL = "https://claude.ai/artifact/N4jR1hQ3AVqRrqGPew34j8";
+
+// Stock photo search terms per theme, for a brief's shot list (Unsplash /
+// Pexels, free license). Cover wants emotion, the bridge wants a vista.
+export const INSPO_PHOTO_TERMS: Partial<Record<InspoTheme, string[]>> = {
+  "contacting-coaches": ["teen writing email on laptop", "golfer checking phone on course", "college golf coach on range"],
+  "what-coaches-want": ["college golf coach watching player", "junior golfer practicing focused", "golf team huddle"],
+  "school-fit": ["college campus aerial", "golfer studying map or list", "university golf course"],
+  scholarships: ["college acceptance letter", "graduation cap golf", "student athlete on campus"],
+  "recruiting-process": ["junior golfer tournament", "golfer walking fairway alone", "college golf team"],
+  "tournaments-showcases": ["junior golf tournament leaderboard", "golfer on first tee crowd", "golf scorecard pencil"],
+  "range-practice": ["driving range practice", "golf alignment sticks", "golf balls on range mat"],
+  "mental-game": ["frustrated golfer", "golfer breathing calm before shot", "golfer reading putt focused"],
+  putting: ["putter and ball on green", "golfer reading green", "putt dropping into hole"],
+  "short-game": ["golf chip shot around green", "bunker shot sand", "wedge close up"],
+  driver: ["golf driver swing", "tee shot fairway", "golfer follow through"],
+  irons: ["iron shot divot", "golfer iron swing", "golf approach shot green"],
+  "setup-grip": ["golf grip close up", "golfer address position", "golf alignment setup"],
+  "course-strategy": ["golf course aerial hole", "golfer yardage book", "golf green with flag"],
+  fitness: ["golf workout gym", "golfer stretching", "athlete mobility training"],
+  "swing-basics": ["golf swing silhouette", "golfer backswing", "golf swing sunset"],
+  beginner: ["beginner golfer lesson", "golf clubs bag", "golfer first swing"],
+  fixes: ["frustrated golfer slice", "golf ball in rough", "golfer looking at ball flight"],
+};

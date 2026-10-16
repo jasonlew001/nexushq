@@ -43,8 +43,12 @@ export const PERSONAL_RE =
 
 // The post's own words first; the search that found it only as a fallback
 // (searches pull in loosely related posts, so they shouldn't override).
+// Humor is judged on the caption alone: creators tag real tips posts
+// #funny / #golfhumor for reach, which would bury them under memes.
 export function themeOf(r) {
-  const own = `${r.caption ?? ""} ${r.hashtags.join(" ")}`;
-  const match = (text) => THEMES.find(([, re]) => re.test(text))?.[0] ?? null;
-  return match(own) ?? match(r.source_query ?? "");
+  const caption = r.caption ?? "";
+  const own = `${caption} ${r.hashtags.join(" ")}`;
+  const match = (text, captionOnly) =>
+    THEMES.find(([key, re]) => (key === "humor" ? re.test(captionOnly ?? text) : re.test(text)))?.[0] ?? null;
+  return match(own, caption.replace(/#\S+/g, "")) ?? match(r.source_query ?? "", "");
 }

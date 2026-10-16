@@ -11,6 +11,7 @@ import {
   type ThemeRow,
 } from "@/lib/data/inspiration-insights";
 import { cn } from "@/lib/cn";
+import { BriefButton } from "./brief-button";
 
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 const pct = (r: number | null) => (r === null ? "—" : `${(r * 100).toFixed(2)}%`);
@@ -125,12 +126,15 @@ function ThemeTable({ themes, baseline, filters }: { themes: ThemeRow[]; baselin
                   );
                 })}
               </ul>
-              <Link
-                href={`/inspiration?theme=${t.theme}&sort=saves${filters.slidesOnly ? "&tab=slideshows" : ""}`}
-                className="inline-block text-xs text-accent hover:underline"
-              >
-                Browse all {t.posts} in the library →
-              </Link>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <BriefButton kind="theme" id={t.theme} label="Carousel brief for this theme" />
+                <Link
+                  href={`/inspiration?theme=${t.theme}&sort=saves${filters.slidesOnly ? "&tab=slideshows" : ""}`}
+                  className="text-xs text-accent hover:underline"
+                >
+                  Browse all {t.posts} in the library →
+                </Link>
+              </div>
             </div>
           </details>
         ))}

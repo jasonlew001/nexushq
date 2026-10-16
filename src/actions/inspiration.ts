@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireFounder } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { INSPO_THEMES } from "@/lib/constants";
+import { buildPostBrief, buildThemeBrief } from "@/lib/carousel-brief";
 
 // All writes are founder-session; RLS (sql/005) is the real gate — own-row
 // only for favorites and notes, `hidden` is the only post column writable.
@@ -103,4 +104,19 @@ export async function setOwnPostTheme(postId: string, theme: string | null): Pro
     .eq("id", postId);
   if (error) throw new Error(`Failed to set theme: ${error.message}`);
   revalidatePath("/inspiration/ours");
+}
+
+// Copy-paste carousel briefs for a claude.ai window with the design system
+// (src/lib/carousel-brief.ts). Read-only: nothing is written.
+export async function getThemeBrief(theme: string): Promise<string> {
+  await requireFounder();
+  const match = INSPO_THEMES.find((t) => t.key === theme);
+  if (!match) throw new Error("Unknown theme");
+  return buildThemeBrief(match.key);
+}
+
+export async function getPostBrief(postId: string): Promise<string> {
+  await requireFounder();
+  assertId(postId);
+  return buildPostBrief(postId);
 }
