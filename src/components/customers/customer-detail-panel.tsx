@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCentsPrecise, formatDate } from "@/lib/format";
 import type { CustomerRow } from "@/lib/types";
 import type { PaymentRecord } from "@/app/api/customers/[customerId]/payments/route";
+import { acqSourceLabel } from "@/components/charts/chart-theme";
 
 export function CustomerDetailPanel({
   customer,
@@ -91,7 +92,14 @@ export function CustomerDetailPanel({
           </div>
           <div>
             <p className="text-faint">Heard about us</p>
-            <p className="mt-0.5">{customer.acqSource || "—"}</p>
+            <p className="mt-0.5">
+              {customer.acqSource ? acqSourceLabel(customer.acqSource) : "—"}
+            </p>
+            {customer.acqSourceDetail && (
+              <p className="mt-1 break-words border-l-2 border-edge pl-2 text-xs leading-relaxed text-muted">
+                {customer.acqSourceDetail}
+              </p>
+            )}
           </div>
         </div>
 

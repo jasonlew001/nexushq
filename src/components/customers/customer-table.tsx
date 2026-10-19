@@ -8,6 +8,7 @@ import { CustomerDetailPanel } from "./customer-detail-panel";
 import { markExported } from "@/actions/exports";
 import { formatCentsWhole, formatDate } from "@/lib/format";
 import type { CustomerRow, SubscriptionStatus, SubscriptionTier } from "@/lib/types";
+import { acqSourceLabel } from "@/components/charts/chart-theme";
 
 type SortKey = "name" | "signedUpAt" | "tier" | "status" | "lifetimeRevenueCents";
 type SortDir = "asc" | "desc";
@@ -39,6 +40,7 @@ function buildCsv(rows: CustomerRow[]): string {
     "status",
     "utm_source",
     "heard_about_us",
+    "heard_about_us_detail",
     "lifetime_revenue_usd",
   ].join(",");
 
@@ -52,6 +54,7 @@ function buildCsv(rows: CustomerRow[]): string {
       csvField(c.status),
       csvField(c.utmSource),
       csvField(c.acqSource),
+      csvField(c.acqSourceDetail),
       csvField(c.lifetimeRevenueCents != null ? (c.lifetimeRevenueCents / 100).toFixed(2) : ""),
     ].join(",")
   );
@@ -66,6 +69,7 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
   const [tierFilter, setTierFilter] = useState<SubscriptionTier | "all">("premium");
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [acqFilter, setAcqFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("signedUpAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selected, setSelected] = useState<CustomerRow | null>(null);
@@ -78,6 +82,14 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
     return Array.from(set).sort();
   }, [customers]);
 
+  const acqSources = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of customers) {
+      if (c.acqSource) counts.set(c.acqSource, (counts.get(c.acqSource) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [customers]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = customers.filter((c) => {
@@ -87,6 +99,7 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
       if (tierFilter !== "all" && (c.tier ?? "free") !== tierFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (sourceFilter !== "all" && c.utmSource !== sourceFilter) return false;
+      if (acqFilter !== "all" && (c.acqSource ?? "") !== acqFilter) return false;
       if (hideExported && c.exportedAt) return false;
       return true;
     });
@@ -114,7 +127,17 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
     });
 
     return rows;
-  }, [customers, query, tierFilter, statusFilter, sourceFilter, hideExported, sortKey, sortDir]);
+  }, [
+    customers,
+    query,
+    tierFilter,
+    statusFilter,
+    sourceFilter,
+    acqFilter,
+    hideExported,
+    sortKey,
+    sortDir,
+  ]);
 
   function handleExport() {
     if (filtered.length === 0) return;
@@ -211,6 +234,21 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
             </option>
           ))}
         </select>
+        {acqSources.length > 0 && (
+          <select
+            value={acqFilter}
+            onChange={(e) => setAcqFilter(e.target.value)}
+            title="Self-reported answer from the post-payment survey"
+            className="rounded-md border border-edge bg-surface-2 px-2 py-1.5 text-xs outline-none"
+          >
+            <option value="all">Heard about us: any</option>
+            {acqSources.map(([key, count]) => (
+              <option key={key} value={key}>
+                {acqSourceLabel(key)} ({count})
+              </option>
+            ))}
+          </select>
+        )}
         <label className="flex items-center gap-1.5 text-xs text-muted">
           <input
             type="checkbox"
