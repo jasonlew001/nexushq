@@ -37,7 +37,10 @@ export async function SiteSignal() {
   const pendingFailed = deploys.pending != null && FAILED_STATES.has(deploys.pending.state);
   const building = deploys.pending != null && !pendingFailed;
   const errorsToday = errors.error ? null : errors.errorsToday;
-  const alarm = pendingFailed || (errorsToday ?? 0) > 0;
+  // Red only for a push that didn't ship; a handful of 5xx against
+  // thousands of requests is worth a glance (amber), not an alarm.
+  const alarm = pendingFailed;
+  const caution = !alarm && (errorsToday ?? 0) > 0;
 
   const parts: string[] = [];
   if (deploys.error) {
@@ -60,15 +63,20 @@ export async function SiteSignal() {
           alarm ? "border-danger/40 ring-1 ring-danger/30 hover:border-danger/60" : "hover:border-edge-strong"
         )}
       >
-        <span className={cn("shrink-0 rounded-md p-1.5", alarm ? "bg-danger/10" : "bg-surface-2")}>
-          <Globe className={cn("h-4 w-4", alarm ? "text-danger" : "text-muted")} strokeWidth={1.75} />
+        <span
+          className={cn("shrink-0 rounded-md p-1.5", alarm ? "bg-danger/10" : caution ? "bg-warn/10" : "bg-surface-2")}
+        >
+          <Globe
+            className={cn("h-4 w-4", alarm ? "text-danger" : caution ? "text-warn" : "text-muted")}
+            strokeWidth={1.75}
+          />
         </span>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-sm font-medium">
             Site
-            <LiveDot tone={alarm ? "danger" : building ? "warn" : "accent"} />
+            <LiveDot tone={alarm ? "danger" : building || caution ? "warn" : "accent"} />
             <span className="text-xs font-normal text-muted">
-              {alarm ? "needs a look" : building ? "deploying" : "live"}
+              {alarm ? "push didn't ship" : building ? "deploying" : caution ? "live, some errors" : "live"}
             </span>
           </p>
           <p className="truncate text-xs text-faint">{parts.join(" · ")}</p>

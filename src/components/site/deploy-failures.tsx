@@ -32,7 +32,8 @@ export async function DeployFailures() {
           Every production push built and shipped.
         </div>
       ) : (
-        <ul className="divide-y divide-edge">
+        // Capped to roughly the production panel's height; older ones scroll.
+        <ul className="max-h-[330px] divide-y divide-edge overflow-y-auto">
           {data.failures.map((f) => {
             const badge = STATE_BADGE[f.state] ?? { tone: "warn" as const, label: f.state };
             return (
