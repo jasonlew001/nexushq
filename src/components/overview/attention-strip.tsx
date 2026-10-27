@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getContactRequests } from "@/lib/data/requests";
@@ -10,6 +10,9 @@ import { getVercelDeploys, getVercelErrors, FAILED_STATES } from "@/lib/data/ver
 import { formatCentsWhole, formatRelativeTime } from "@/lib/format";
 import { ANTHROPIC_MONTHLY_SPEND_ALERT_USD, CANCELING_SOON_WINDOW_DAYS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
+import { fingerprint, readDismissed } from "@/lib/attention";
+import { dismissAttention, restoreAttention } from "@/actions/attention";
+import { DismissButton } from "./dismiss-button";
 
 interface Item {
   key: string;
@@ -17,6 +20,8 @@ interface Item {
   label: string;
   detail: string;
   href: string;
+  // What the item is showing right now; a dismissal holds only while this matches.
+  fingerprint: string;
 }
 
 // "Who did we not name": profiles with no first/last name come back as "—"
@@ -55,6 +60,7 @@ export async function AttentionStrip() {
       label: `${unanswered.length} unanswered request${unanswered.length === 1 ? "" : "s"}`,
       detail: `newest ${formatRelativeTime(unanswered[0].createdAt)}`,
       href: "/requests",
+      fingerprint: fingerprint(...unanswered.map((r) => r.id).sort()),
     });
   }
 
@@ -66,6 +72,7 @@ export async function AttentionStrip() {
       label: `${pastDue.length} payment${pastDue.length === 1 ? "" : "s"} past due`,
       detail: describePeople(pastDue.map((r) => r.name)),
       href: "/customers",
+      fingerprint: fingerprint(...pastDue.map((r) => r.id).sort()),
     });
   }
 
@@ -77,6 +84,7 @@ export async function AttentionStrip() {
       label: pending.state === "ERROR" ? "Newest push failed to build" : `Newest push ${pending.state.toLowerCase()}`,
       detail: `${pending.sha ?? "deploy"} · ${pending.errorMessage ?? pending.message ?? "see Vercel"}`,
       href: "/site",
+      fingerprint: fingerprint(pending.id, pending.state),
     });
   }
 
@@ -88,6 +96,8 @@ export async function AttentionStrip() {
       label: `${errors.data.errorsToday} server error${errors.data.errorsToday === 1 ? "" : "s"} today`,
       detail: worst ? `mostly ${worst.route}` : "production 5xx",
       href: "/site",
+      // Today's count: another error after dismissing brings it back.
+      fingerprint: fingerprint(new Date().toISOString().slice(0, 10), errors.data.errorsToday),
     });
   }
 
@@ -99,6 +109,7 @@ export async function AttentionStrip() {
       label: `${canceling.length} subscription${canceling.length === 1 ? "" : "s"} canceling`,
       detail: `within ${CANCELING_SOON_WINDOW_DAYS} days`,
       href: "/revenue",
+      fingerprint: fingerprint(...canceling.map((c) => c.subscriptionId).sort()),
     });
   }
 
@@ -109,37 +120,58 @@ export async function AttentionStrip() {
       label: `Anthropic spend over $${ANTHROPIC_MONTHLY_SPEND_ALERT_USD}`,
       detail: `${formatCentsWhole(anthropic.data.monthToDateCents)} this month`,
       href: "/costs",
+      fingerprint: fingerprint(new Date().toISOString().slice(0, 7)), // once per month
     });
   }
 
-  if (items.length === 0) {
+  const dismissed = readDismissed();
+  const visible = items.filter((i) => dismissed[i.key] !== i.fingerprint);
+  const hidden = items.length - visible.length;
+
+  const restore =
+    hidden > 0 ? (
+      <form action={restoreAttention} className="inline">
+        <button type="submit" className="text-xs text-faint underline-offset-2 hover:text-ink hover:underline">
+          {hidden} dismissed · show
+        </button>
+      </form>
+    ) : null;
+
+  if (visible.length === 0) {
     return (
-      <Card className="flex items-center gap-2.5 py-3">
+      <Card className="flex flex-wrap items-center gap-x-2.5 gap-y-1 py-3">
         <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.75} />
         <span className="text-sm">All clear.</span>
-        <span className="text-xs text-faint">Requests answered, payments current, site shipping.</span>
+        <span className="text-xs text-faint">
+          {hidden > 0 ? "Nothing new since you last cleared this." : "Requests answered, payments current, site shipping."}
+        </span>
+        {restore && <span className="ml-auto">{restore}</span>}
       </Card>
     );
   }
 
-  const dangers = items.filter((i) => i.tone === "danger").length;
+  const dangers = visible.filter((i) => i.tone === "danger").length;
 
   return (
     <Card className="p-0">
-      <div className="flex items-baseline justify-between border-b border-edge px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3 border-b border-edge px-4 py-3">
         <h2 className="text-sm font-medium">Needs attention</h2>
         <p className="text-xs text-faint">
-          {items.length} item{items.length === 1 ? "" : "s"}
+          {visible.length} item{visible.length === 1 ? "" : "s"}
           {dangers > 0 ? ` · ${dangers} urgent` : ""}
+          {restore && <> · {restore}</>}
         </p>
       </div>
       {/* Each cell draws its own top/left hairline; the wrapper clips the
           outer ones, so any item count tiles cleanly at any column count. */}
       <div className="overflow-hidden">
       <ul className="stagger -ml-px -mt-px flex flex-wrap">
-        {items.map((item) => (
-          <li key={item.key} className="w-full border-l border-t border-edge sm:w-1/2 lg:w-1/3">
-            <Link href={item.href} className="group flex items-start gap-2.5 px-4 py-3 transition-colors hover:bg-surface-2">
+        {visible.map((item) => (
+          <li
+            key={item.key}
+            className="group relative w-full border-l border-t border-edge transition-opacity has-[[aria-busy=true]]:pointer-events-none has-[[aria-busy=true]]:opacity-30 sm:w-1/2 lg:w-1/3"
+          >
+            <Link href={item.href} className="flex items-start gap-2.5 py-3 pl-4 pr-10 transition-colors hover:bg-surface-2">
               <span
                 className={cn(
                   "mt-1.5 h-2 w-2 shrink-0 rounded-full",
@@ -153,8 +185,11 @@ export async function AttentionStrip() {
                 </span>
                 <span className="block truncate text-xs text-faint">{item.detail}</span>
               </span>
-              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-100" />
             </Link>
+            {/* Hides the item until what it shows changes (see fingerprint). */}
+            <form action={dismissAttention.bind(null, item.key, item.fingerprint)} className="absolute right-2 top-2.5">
+              <DismissButton label={item.label} />
+            </form>
           </li>
         ))}
       </ul>

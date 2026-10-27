@@ -3,8 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 // Last-updated status for the product datasets the main site runs on.
 // Timestamp columns verified against fairway-mvp's SQL (create-tables.sql,
-// create-jgs-table.sql, add-tournament*-table.sql) — all six tables are
-// public_read, so the founder session reads them without the service role.
+// create-jgs-table.sql, add-tournament*-table.sql). None are public-read any
+// more; sql/011 grants founders SELECT, so the founder session reads them
+// without the service role. Without that policy RLS returns zero rows.
 //
 // Most of these are import-style tables with created_at only, so "last
 // updated" means "newest row" — an in-place UPDATE without a timestamp
