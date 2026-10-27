@@ -8,6 +8,7 @@ import { OverviewCards, OverviewCardsSkeleton } from "@/components/overview-card
 import { SystemStrip, SystemStripSkeleton } from "@/components/overview/system-strip";
 import { RequestsAlert, RequestsAlertSkeleton } from "@/components/overview/requests-alert";
 import { HearAboutUsPanel, HearAboutUsPanelSkeleton } from "@/components/customers/hear-about-us-panel";
+import { SiteSignal, SiteSignalSkeleton } from "@/components/overview/site-signal";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,19 @@ export default async function OverviewPage() {
         </Suspense>
       </SectionBoundary>
 
-      <SectionBoundary label="Requests">
-        <Suspense fallback={<RequestsAlertSkeleton />}>
-          <RequestsAlert />
-        </Suspense>
-      </SectionBoundary>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <SectionBoundary label="Requests">
+          <Suspense fallback={<RequestsAlertSkeleton />}>
+            <RequestsAlert />
+          </Suspense>
+        </SectionBoundary>
+
+        <SectionBoundary label="Site">
+          <Suspense fallback={<SiteSignalSkeleton />}>
+            <SiteSignal />
+          </Suspense>
+        </SectionBoundary>
+      </div>
 
       <SectionBoundary label="Signups">
         <Suspense fallback={<TrendRowSkeleton />}>

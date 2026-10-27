@@ -23,6 +23,20 @@ export const CHART_WEEKS = 26;
 // amber past this many days. Edit here, no UI for it yet.
 export const DATA_STALENESS_WARN_DAYS = 30;
 
+// Main-site routes the Site page always lists, even with zero errors — the
+// money and AI paths. (There is no /api/resume in production; the resume
+// tool lives at /dashboard/resume.)
+export const VERCEL_WATCH_ROUTES = [
+  "/api/stripe/webhook",
+  "/api/stripe/checkout",
+  "/api/analyze",
+  "/api/recommend",
+  "/api/score",
+] as const;
+
+// Warn when a domain expires within this many days without auto-renew.
+export const DOMAIN_EXPIRY_WARN_DAYS = 30;
+
 // Widest window the monthly cost/revenue charts can show (range tabs slice
 // client-side: 3/6/12 months) and the Anthropic cost fetch window that
 // feeds them. Current partial month included.

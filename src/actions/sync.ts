@@ -16,5 +16,6 @@ export async function syncNow(): Promise<void> {
   revalidateTag("hq-stripe-referrals");
   revalidateTag("hq-anthropic");
   revalidateTag("hq-instagram");
+  revalidateTag("hq-vercel");
   revalidatePath("/", "layout");
 }

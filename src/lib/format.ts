@@ -40,6 +40,13 @@ export function formatRelativeTime(iso: string): string {
   return `${diffDay}d ago`;
 }
 
+// Build/run durations: "48s", "3m 08s".
+export function formatDuration(seconds: number): string {
+  const s = Math.round(seconds);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+}
+
 // Free-text "City, ST" (or "City, State", or just "ST") -> two-letter state
 // code. Expect messy/NULL input — this is a best-effort parse, not a
 // validator; returns null rather than guessing.
