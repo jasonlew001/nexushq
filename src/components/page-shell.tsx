@@ -19,9 +19,9 @@ export function PageShell({
 
 export function PageTitle({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="mb-6">
-      <h1 className="font-display text-[34px] leading-none tracking-tight">{title}</h1>
-      {description && <p className="mt-2 text-[13px] text-muted">{description}</p>}
+    <div className="mb-5">
+      <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.025em]">{title}</h1>
+      {description && <p className="mt-1 text-[13px] text-muted">{description}</p>}
     </div>
   );
 }

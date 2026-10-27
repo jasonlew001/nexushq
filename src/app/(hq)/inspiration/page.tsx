@@ -22,7 +22,7 @@ export default async function InspirationPage({
   return (
     <PageShell
       title="Inspiration"
-      description="Viral golf and recruiting reels and slideshows — sorted by what outperformed its creator's audience"
+      description="Viral golf and recruiting reels and slideshows, sorted by what outperformed its creator's audience"
     >
       <InspirationSwitcher active="library" />
       <SectionBoundary label="Inspiration">

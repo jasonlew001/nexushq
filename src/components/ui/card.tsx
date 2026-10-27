@@ -12,7 +12,7 @@ export function Card({ className, children }: { className?: string; children: Re
 export function SectionLabel({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-sm font-medium text-ink">{children}</h2>
+      <h2 className="text-[13px] font-semibold tracking-[-0.005em] text-ink">{children}</h2>
       {aside ? <span className="text-xs text-faint">{aside}</span> : null}
     </div>
   );

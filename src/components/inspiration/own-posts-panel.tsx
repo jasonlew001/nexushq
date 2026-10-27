@@ -93,8 +93,8 @@ export async function OwnPostsPanel({ sort }: { sort: OwnSort }) {
           ["Usual save rate", pct(data.medianSaveRate)],
         ].map(([label, value]) => (
           <Card key={label}>
-            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">{label}</p>
-            <p className="tnum text-xl font-semibold">{value}</p>
+            <p className="mb-2 text-[13px] font-medium text-muted">{label}</p>
+            <p className="font-display text-[26px] leading-none">{value}</p>
           </Card>
         ))}
       </div>

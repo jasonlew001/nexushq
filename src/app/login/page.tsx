@@ -43,7 +43,7 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="" className="h-12 w-12 rounded-xl bg-white p-1.5" />
           <div>
-            <h1 className="font-display text-[40px] leading-none text-white">
+            <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-white">
               Nexus <span className="text-brand-gold">HQ</span>
             </h1>
             <p className="mt-2 text-[13px] text-white/60">Founders only.</p>

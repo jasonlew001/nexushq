@@ -46,7 +46,7 @@ function shortDayLabel(iso: string): string {
 }
 
 // The Overview page's big trend chart: signups over time, single series,
-// rendered with a top-saturated-to-transparent gradient fill. A range
+// solid accent bars with rounded tops. A range
 // toggle swaps between daily (past week) and weekly (past month / all
 // time) buckets rather than just windowing the same series.
 export function OverviewTrendChart({
@@ -76,12 +76,6 @@ export function OverviewTrendChart({
       </div>
       <ResponsiveContainer width="100%" height={244}>
         <BarChart data={rows} barCategoryGap="28%">
-          <defs>
-            <linearGradient id="overviewTrendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_ACCENT} stopOpacity={0.95} />
-              <stop offset="100%" stopColor={CHART_ACCENT} stopOpacity={0.08} />
-            </linearGradient>
-          </defs>
           <CartesianGrid stroke={CHART_GRID} strokeDasharray="0" vertical={false} />
           <XAxis
             dataKey="label"
@@ -105,8 +99,8 @@ export function OverviewTrendChart({
           />
           <Bar
             dataKey="value"
-            fill="url(#overviewTrendFill)"
-            radius={[6, 6, 0, 0]}
+            fill={CHART_ACCENT}
+            radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={!reducedMotion}
             animationBegin={150}

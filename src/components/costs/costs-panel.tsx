@@ -85,17 +85,17 @@ export async function CostsPanel() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <div className="mb-1.5 flex items-center gap-2">
-            <p className="text-[11px] uppercase tracking-wider text-muted">Anthropic spend (MTD)</p>
+            <p className="text-[13px] font-medium text-muted">Anthropic spend (MTD)</p>
             <Badge tone={metrics.error ? "warn" : "accent"}>{metrics.error ? "unavailable" : "live"}</Badge>
           </div>
           {metrics.error ? (
             <>
-              <p className="tnum text-xl font-semibold text-faint">—</p>
+              <p className="font-display text-[26px] leading-none text-faint">—</p>
               <p className="mt-1 text-xs text-warn">{metrics.error}</p>
             </>
           ) : (
             <>
-              <p className="tnum text-xl font-semibold">{formatCentsWhole(metrics.monthToDateCents)}</p>
+              <p className="font-display text-[26px] leading-none">{formatCentsWhole(metrics.monthToDateCents)}</p>
               <p className={`tnum mt-1 text-xs ${trendPct != null && trendPct >= 0 ? "text-warn" : "text-accent"}`}>
                 {trendPct == null ? "—" : `${trendPct >= 0 ? "+" : ""}${formatPercent(trendPct)} vs last month`}
               </p>
@@ -104,8 +104,8 @@ export async function CostsPanel() {
         </Card>
 
         <Card>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">Manual costs (monthly-equiv.)</p>
-          <p className="tnum text-xl font-semibold">{formatCentsWhole(manualMonthlyCents)}</p>
+          <p className="mb-2 text-[13px] font-medium text-muted">Manual costs (monthly-equiv.)</p>
+          <p className="font-display text-[26px] leading-none">{formatCentsWhole(manualMonthlyCents)}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Badge tone="neutral">manual</Badge>
             {perPersonEntries.map(({ person, cents }) => (
@@ -117,8 +117,8 @@ export async function CostsPanel() {
         </Card>
 
         <Card>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">Total burn (month-to-date)</p>
-          <p className="tnum text-xl font-semibold text-gold">{formatCentsWhole(totalBurnCents)}</p>
+          <p className="mb-2 text-[13px] font-medium text-muted">Total burn (month-to-date)</p>
+          <p className="font-display text-[26px] leading-none text-gold">{formatCentsWhole(totalBurnCents)}</p>
           <p className="mt-1 text-xs text-faint">Anthropic MTD + manual monthly-equivalent</p>
         </Card>
       </div>

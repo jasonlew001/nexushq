@@ -22,7 +22,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="stagger space-y-5">
-      <PageTitle title="Welcome back" />
+      <PageTitle title="Overview" />
 
       <SectionBoundary label="KPIs">
         <Suspense fallback={<KpiRowSkeleton />}>

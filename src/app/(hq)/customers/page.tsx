@@ -16,7 +16,7 @@ export default async function CustomersPage() {
   return (
     <PageShell
       title="Customers"
-      description="Every account — search, filter, click a row for payment history"
+      description="Every account. Search, filter, or click a row for payment history."
     >
       <div className="mb-4">
         <SectionBoundary label="How they heard about us">

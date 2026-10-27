@@ -43,8 +43,8 @@ function sortValue(media: InstagramMedia, key: SortKey): number {
 function StatTile({ label, value }: { label: string; value: number | null }) {
   return (
     <Card>
-      <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">{label}</p>
-      <p className="tnum text-2xl font-semibold">{value != null ? value.toLocaleString() : "—"}</p>
+      <p className="mb-2 text-[13px] font-medium text-muted">{label}</p>
+      <p className="font-display text-[30px] leading-none">{value != null ? value.toLocaleString() : "—"}</p>
     </Card>
   );
 }

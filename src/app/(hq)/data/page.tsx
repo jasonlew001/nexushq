@@ -12,7 +12,7 @@ export default async function DataPage() {
   return (
     <PageShell
       title="Data health"
-      description="When each product dataset was last loaded — newest row per table"
+      description="When each product dataset was last loaded (newest row per table)"
     >
       <SectionBoundary label="Data freshness">
         <Suspense fallback={<FreshnessLedgerSkeleton />}>

@@ -34,19 +34,19 @@ async function RevenueSections() {
     <div className="stagger space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <Card>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">MRR</p>
-          <p className="tnum text-2xl font-semibold text-gold">
+          <p className="mb-2 text-[13px] font-medium text-muted">MRR</p>
+          <p className="font-display text-[30px] leading-none text-gold">
             {formatCentsWhole(metrics.mrrCents)}
           </p>
         </Card>
         <Card>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+          <p className="mb-2 text-[13px] font-medium text-muted">
             Paying subscribers
           </p>
-          <p className="tnum text-2xl font-semibold">{metrics.payingSubscriberCount}</p>
+          <p className="font-display text-[30px] leading-none">{metrics.payingSubscriberCount}</p>
         </Card>
         <Card>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">By plan</p>
+          <p className="mb-2 text-[13px] font-medium text-muted">By plan</p>
           {metrics.planBreakdown.length === 0 ? (
             <p className="text-sm text-faint">No paying subscriptions yet</p>
           ) : (
@@ -77,10 +77,10 @@ async function RevenueSections() {
         <SectionLabel>Retention</SectionLabel>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+            <p className="mb-2 text-[13px] font-medium text-muted">
               Renewal rate (1st → 2nd period)
             </p>
-            <p className="tnum text-2xl font-semibold text-accent">
+            <p className="font-display text-[30px] leading-none text-accent">
               {metrics.retention.renewalRate != null
                 ? formatPercent(metrics.retention.renewalRate)
                 : "—"}
@@ -105,10 +105,10 @@ async function RevenueSections() {
             )}
           </div>
           <div>
-            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+            <p className="mb-2 text-[13px] font-medium text-muted">
               Avg shelf life (ended subs)
             </p>
-            <p className="tnum text-2xl font-semibold">
+            <p className="font-display text-[30px] leading-none">
               {months(metrics.retention.avgEndedLifetimeDays)}
             </p>
             <p className="mt-1 text-xs text-faint">
@@ -117,10 +117,10 @@ async function RevenueSections() {
             </p>
           </div>
           <div>
-            <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+            <p className="mb-2 text-[13px] font-medium text-muted">
               Avg tenure (still active)
             </p>
-            <p className="tnum text-2xl font-semibold">
+            <p className="font-display text-[30px] leading-none">
               {months(metrics.retention.avgActiveTenureDays)}
             </p>
             <p className="mt-1 text-xs text-faint">
@@ -144,7 +144,7 @@ async function RevenueSections() {
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 bg-surface">
-                <tr className="text-[11px] uppercase tracking-wider text-muted">
+                <tr className="text-[13px] font-medium text-muted">
                   <th className="py-2 pr-3 font-medium">Name</th>
                   <th className="py-2 pr-3 font-medium">Plan</th>
                   <th className="py-2 pr-3 font-medium">Was paying</th>

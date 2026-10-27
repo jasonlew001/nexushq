@@ -46,23 +46,33 @@ export async function InstagramCard() {
 
   return (
     <Link href="/social" className="group block h-full">
-      <Card className="flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-edge-strong">
-        <div className="flex-1 p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Instagram</p>
-            <Instagram className="h-4 w-4 text-faint transition-colors group-hover:text-ink" strokeWidth={1.75} />
-          </div>
-          <p className="font-display mt-4 text-[40px] leading-[0.9]">{current.toLocaleString()}</p>
-          <p className="mt-1.5 text-xs text-muted">
-            followers
-            {deltaPct != null && (
-              <span className={`ml-2 ${deltaPct >= 0 ? "text-accent" : "text-danger"}`}>
-                {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct * 100).toFixed(1)}% vs 7 days ago
-              </span>
-            )}
-          </p>
+      <Card className="flex h-full flex-col p-5 transition-colors hover:border-edge-strong">
+        <div className="flex items-center justify-between">
+          <p className="text-[13px] font-semibold">Instagram</p>
+          <Instagram className="h-4 w-4 text-faint transition-colors group-hover:text-ink" strokeWidth={1.75} />
         </div>
-        {recentPoints.length >= 2 && <Sparkline points={recentPoints} colorVar="--accent" className="h-12" />}
+        <div className="mt-4 flex items-baseline gap-2.5">
+          <p className="font-display text-[34px] leading-none">{current.toLocaleString()}</p>
+          {deltaPct != null && (
+            <span
+              className={`tnum rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                deltaPct >= 0 ? "bg-accent/10 text-accent" : "bg-danger/10 text-danger"
+              }`}
+            >
+              {deltaPct >= 0 ? "↑" : "↓"} {Math.abs(deltaPct * 100).toFixed(1)}%
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-muted">Followers, vs 7 days ago</p>
+        {recentPoints.length >= 2 && (
+          // Fills the height the row gives this card; 30 days of follower count.
+          <div className="mt-4 flex min-h-[72px] flex-1 flex-col justify-end">
+            <Sparkline points={recentPoints} colorVar="--accent" className="h-full max-h-[150px] min-h-[72px]" />
+          </div>
+        )}
+        <p className="mt-3 border-t border-edge pt-3 text-xs text-faint">
+          {data.mediaCount != null ? `${data.mediaCount.toLocaleString()} posts · ` : ""}last 30 days shown
+        </p>
       </Card>
     </Link>
   );

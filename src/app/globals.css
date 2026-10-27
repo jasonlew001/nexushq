@@ -34,6 +34,8 @@ html {
 
 body {
   @apply bg-bg text-ink antialiased;
+  /* Inter's open 4/6/9 and flat-top 3: digits read faster in dense tables. */
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 h1,
@@ -42,11 +44,13 @@ h3 {
   text-wrap: balance;
 }
 
-/* Headline numerals in the serif: lining, tabular so they don't jitter
-   when values change between syncs. */
+/* Headline numbers: Inter's Display optical size, semibold, tracked tight,
+   tabular so values don't jitter between syncs. */
 .font-display {
-  font-variant-numeric: lining-nums tabular-nums;
-  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 32;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Dense-numeric everywhere numbers align in columns */

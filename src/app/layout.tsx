@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-// Instrument Sans for the UI, its serif sibling for headline numbers and
-// page titles only (one weight, used sparingly), JetBrains Mono for commit
-// SHAs, routes and durations. All self-hosted by next/font, no npm dep.
-const sans = Instrument_Sans({ subsets: ["latin"], variable: "--font-sans" });
-const display = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-display" });
+// One family, two cuts: Inter's optical-size axis gives the tight "Display"
+// cut automatically at headline sizes (see .font-display in globals.css)
+// and the open text cut at 13px. JetBrains Mono for SHAs, routes, durations.
+const sans = Inter({ subsets: ["latin"], axes: ["opsz"], variable: "--font-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
@@ -19,7 +18,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen font-sans text-[13px]">{children}</body>
     </html>
   );

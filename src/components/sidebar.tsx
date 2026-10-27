@@ -27,7 +27,7 @@ export function Sidebar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {/* The PNG is transparent: a white tile keeps the green N visible on the green rail. */}
         <img src="/logo.png" alt="" className="h-8 w-8 rounded-[9px] bg-white p-1" />
-        <span className="font-display text-[22px] leading-none">
+        <span className="text-[15px] font-semibold tracking-[-0.01em]">
           Nexus <span className="text-brand-gold">HQ</span>
         </span>
       </Link>
