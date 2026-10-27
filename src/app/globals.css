@@ -3,15 +3,25 @@
 @tailwind utilities;
 
 :root {
-  /* Off-white "Fieldra-style" light surface. HSL triplets so Tailwind can apply alpha. */
-  --bg: 220 11% 95%; /* #F0F1F3 */
+  /* Light work surface, neutrals tinted a hair toward the brand green so
+     they sit with the fairway-green rail instead of fighting it (the old
+     blue-gray did). HSL triplets so Tailwind can apply alpha. */
+  --bg: 150 9% 95%; /* #F0F3F1 */
   --surface: 0 0% 100%; /* #FFFFFF */
-  --surface-2: 220 14% 97%; /* #F6F7F9 */
-  --edge: 220 12% 90%; /* #E2E4E8 */
-  --edge-strong: 220 10% 82%; /* #CDD0D6 */
-  --ink: 220 20% 12%; /* #181D25 */
-  --muted: 220 9% 42%; /* #616874 */
-  --faint: 220 8% 62%; /* #989DA6 */
+  --surface-2: 150 12% 97%; /* #F6F8F7 */
+  --edge: 150 9% 89%; /* #E0E6E3 */
+  --edge-strong: 150 7% 80%; /* #C8D0CC */
+  --ink: 160 28% 10%; /* #12211C */
+  --muted: 160 6% 38%; /* #5B6662 — 6.0:1 on white */
+  --faint: 160 5% 58%; /* #8E9893 */
+  /* Nexus brand, from fairway-mvp's DESIGN_BRIEF: deep fairway green +
+     muted gold. brand-gold is for use ON the green (it's only ~2:1 on
+     white); on white, money stays --gold below. mint is the legible
+     positive/sparkline green on the brand surface. */
+  --brand: 160 61% 15%; /* #0F3D2E */
+  --brand-deep: 159 61% 11%; /* #0B2D21 */
+  --brand-gold: 46 65% 52%; /* #D4AF37 — 5.8:1 on --brand */
+  --mint: 138 26% 60%; /* #80B38F — 5.0:1 on --brand */
   --accent: 158 55% 32%; /* #257F5C — darkened fairway green, ~4.9:1 on white */
   --gold: 42 65% 35%; /* #93701F — antique gold, reserved for MRR/money; 4.59:1 on white */
   --danger: 358 65% 45%; /* #BE2F35 */
@@ -24,7 +34,19 @@ html {
 
 body {
   @apply bg-bg text-ink antialiased;
-  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Headline numerals in the serif: lining, tabular so they don't jitter
+   when values change between syncs. */
+.font-display {
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 /* Dense-numeric everywhere numbers align in columns */

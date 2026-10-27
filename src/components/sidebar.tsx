@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SidebarNav, MobileNav } from "./nav";
 import { RefreshedAt, RefreshedAtSkeleton } from "./refreshed-at";
 import { getNewRequestCount } from "@/lib/data/requests";
+import { SiteStatusMini } from "./site-status-mini";
 
 // The nav itself is a client component (it needs usePathname), so the badge
 // count is fetched here and passed down. Suspended separately: the nav paints
@@ -16,15 +17,19 @@ async function MobileNavWithBadge() {
   return <MobileNav newRequestCount={await getNewRequestCount()} />;
 }
 
-// Desktop rail: logo, grouped nav, pinned "synced" readout at the bottom.
+// Desktop rail: logo, grouped nav, and pinned at the bottom the main site's
+// live status plus the "synced" readout.
 // Hidden below md — MobileTopBar below takes over navigation there.
 export function Sidebar() {
   return (
-    <aside className="sidebar-stagger sticky top-0 hidden h-screen w-[216px] shrink-0 flex-col border-r border-edge px-3 py-4 md:flex">
-      <Link href="/" style={{ "--i": 0 } as React.CSSProperties} className="mb-6 flex items-center gap-2 px-3">
+    <aside className="sidebar-stagger sticky top-0 hidden h-screen w-[224px] shrink-0 flex-col bg-brand px-3 py-5 text-white md:flex">
+      <Link href="/" style={{ "--i": 0 } as React.CSSProperties} className="mb-8 flex items-center gap-2.5 px-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" className="h-8 w-8" />
-        <span className="text-[15px] font-semibold tracking-tight">Nexus HQ</span>
+        {/* The PNG is transparent: a white tile keeps the green N visible on the green rail. */}
+        <img src="/logo.png" alt="" className="h-8 w-8 rounded-[9px] bg-white p-1" />
+        <span className="font-display text-[22px] leading-none">
+          Nexus <span className="text-brand-gold">HQ</span>
+        </span>
       </Link>
 
       <div style={{ "--i": 1 } as React.CSSProperties}>
@@ -34,6 +39,9 @@ export function Sidebar() {
       </div>
 
       <div className="mt-auto px-3 pt-4" style={{ "--i": 9 } as React.CSSProperties}>
+        <Suspense fallback={null}>
+          <SiteStatusMini />
+        </Suspense>
         <Suspense fallback={<RefreshedAtSkeleton />}>
           <RefreshedAt />
         </Suspense>

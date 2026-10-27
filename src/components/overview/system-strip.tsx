@@ -1,52 +1,48 @@
+import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LiveDot } from "@/components/ui/live-dot";
 import { getAnthropicMetrics } from "@/lib/data/anthropic-metrics";
 import { getManualCosts, monthlyBurnCents } from "@/lib/data/costs";
-import { getDataFreshness } from "@/lib/data/freshness";
 import { getCustomerRows } from "@/lib/data/customers";
 import { formatCentsWhole } from "@/lib/format";
-import { DATA_STALENESS_WARN_DAYS } from "@/lib/constants";
 
 // Slim, dot-separated ambient readout. Every figure here is real and
 // already fetched elsewhere on Overview (React cache()/unstable_cache()
 // dedupes the repeat calls to zero extra network cost).
+//
+// The "data oldest update Nd ago" readout that used to sit here is gone: it
+// read newest created_at per product table, and in-place refreshes (e.g. the
+// College Scorecard academics refresh) don't touch created_at, so it showed
+// a permanent amber "197d ago" false alarm. The /data ledger keeps the
+// per-table detail with that caveat.
 export async function SystemStrip() {
-  const [anthropic, manualCosts, freshness, customers] = await Promise.all([
+  const [anthropic, manualCosts, customers] = await Promise.all([
     getAnthropicMetrics(),
     getManualCosts(),
-    getDataFreshness(),
     getCustomerRows(),
   ]);
 
   const monthKey = new Date().toISOString().slice(0, 7);
   const burnCents = anthropic.data.monthToDateCents + Math.round(monthlyBurnCents(manualCosts, monthKey));
 
-  const oldest = freshness.reduce<number | null>(
-    (max, d) => (d.ageDays != null && (max == null || d.ageDays > max) ? d.ageDays : max),
-    null
-  );
-  const isStale = oldest != null && oldest > DATA_STALENESS_WARN_DAYS;
-
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-      <span className="tnum">
-        Burn MTD {formatCentsWhole(burnCents)}
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-edge pt-4 text-xs text-muted">
+      <Link href="/costs" className="tnum hover:text-ink">
+        Burn this month {formatCentsWhole(burnCents)}
         {anthropic.data.error ? (
           <span className="text-warn" title={anthropic.data.error}>
             {" "}
             (excl. Anthropic)
           </span>
         ) : null}
-      </span>
+      </Link>
       <span className="text-faint">·</span>
-      <span className="flex items-center gap-1.5">
-        <LiveDot tone={isStale ? "warn" : "accent"} />
-        <span className="tnum">
-          Data {oldest != null ? `oldest update ${oldest}d ago` : "no timestamps yet"}
-        </span>
-      </span>
+      <Link href="/customers" className="tnum hover:text-ink">
+        {customers.length.toLocaleString()} accounts
+      </Link>
       <span className="text-faint">·</span>
-      <span className="tnum">{customers.length.toLocaleString()} accounts</span>
+      <Link href="/data" className="hover:text-ink">
+        Product data ledger
+      </Link>
     </div>
   );
 }

@@ -17,7 +17,7 @@ async function GrowthCharts() {
   return (
     <div className="stagger space-y-4">
       <Card>
-        <SectionLabel>Signups by week — by UTM source</SectionLabel>
+        <SectionLabel>Signups by week, by UTM source</SectionLabel>
         <SignupsByWeekChart
           data={signups.weekly}
           payingData={signups.weeklyPayingOnly}
@@ -27,7 +27,7 @@ async function GrowthCharts() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <SectionLabel>Acquisition — UTM source (all signups)</SectionLabel>
+          <SectionLabel>Acquisition: UTM source (all signups)</SectionLabel>
           <SourceBarChart
             data={signups.utmBreakdown}
             order={signups.topUtmSources}
@@ -36,7 +36,7 @@ async function GrowthCharts() {
           />
         </Card>
         <Card>
-          <SectionLabel>Acquisition — how they heard about us (paying customers only)</SectionLabel>
+          <SectionLabel>Acquisition: how they heard about us (paying customers only)</SectionLabel>
           <SourceBarChart
             data={signups.hearAboutUsBreakdown}
             order={signups.hearAboutUsBreakdown.map((b) => b.source)}

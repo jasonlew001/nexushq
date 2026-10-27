@@ -22,9 +22,15 @@ const config: Config = {
         gold: "hsl(var(--gold))",
         danger: "hsl(var(--danger))",
         warn: "hsl(var(--warn))",
+        brand: "hsl(var(--brand))",
+        "brand-deep": "hsl(var(--brand-deep))",
+        "brand-gold": "hsl(var(--brand-gold))",
+        mint: "hsl(var(--mint))",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       keyframes: {
         "fade-up": {

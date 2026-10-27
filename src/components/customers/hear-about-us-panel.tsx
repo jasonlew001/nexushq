@@ -52,7 +52,7 @@ export async function HearAboutUsPanel() {
   const top = buckets.reduce((m, b) => Math.max(m, b.count), 0);
 
   return (
-    <Card>
+    <Card className="h-full p-5">
       <SectionLabel>How they heard about us</SectionLabel>
 
       {answered.length === 0 ? (
@@ -83,14 +83,14 @@ export async function HearAboutUsPanel() {
 
           {otherDetails.length > 0 && (
             <div className="mt-3 border-t border-edge pt-3">
-              <p className="mb-1.5 text-[10px] uppercase tracking-wider text-faint">
+              <p className="mb-1.5 text-xs text-muted">
                 What “other” said
               </p>
               <ul className="space-y-1">
                 {otherDetails.map((detail, i) => (
                   <li
                     key={i}
-                    className="break-words border-l-2 border-edge pl-2 text-xs leading-relaxed text-muted"
+                    className="break-words rounded-md bg-surface-2 px-2.5 py-1.5 text-xs leading-relaxed text-muted"
                   >
                     {detail}
                   </li>
@@ -101,7 +101,7 @@ export async function HearAboutUsPanel() {
 
           <p className="mt-3 text-xs text-faint">
             {answered.length} answered · {stillPaying} still paying. Asked once on the
-            post-payment card, so it only covers people who paid — and it is blank for anyone
+            post-payment card, so it only covers people who paid, and it is blank for anyone
             who skipped it or paid before the survey shipped. Self-reported, unlike the UTM
             source column.
           </p>

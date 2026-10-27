@@ -30,12 +30,12 @@ export async function RefreshedAt() {
   }
 
   return (
-    <p className="text-xs text-faint">
+    <p className="text-xs text-white/55">
       synced <span className="tnum">{oldest ? formatRelativeTime(oldest) : "—"}</span>
     </p>
   );
 }
 
 export function RefreshedAtSkeleton() {
-  return <p className="text-xs text-faint">synced —</p>;
+  return <p className="text-xs text-white/55">synced —</p>;
 }

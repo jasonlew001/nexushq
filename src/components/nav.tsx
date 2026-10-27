@@ -57,7 +57,7 @@ const GROUPS: readonly NavGroup[] = [
     ],
   },
   {
-    label: "Manage",
+    label: "Operate",
     links: [
       { href: "/site", label: "Site", icon: Globe },
       { href: "/requests", label: "Requests", icon: Inbox },
@@ -76,20 +76,21 @@ function NavItem({ link, active, badge }: { link: NavLink; active: boolean; badg
     <Link
       href={link.href}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] transition-colors",
-        active
-          ? "border border-edge bg-surface font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.06)]"
-          : "border border-transparent text-muted hover:bg-surface/60 hover:text-ink"
+        "flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px] transition-colors duration-150",
+        active ? "bg-white/[0.09] font-medium text-white" : "text-white/65 hover:bg-white/[0.05] hover:text-white"
       )}
     >
-      <link.icon className={cn("h-4 w-4", active ? "text-accent" : "text-muted")} strokeWidth={1.75} />
+      <link.icon
+        className={cn("h-4 w-4 transition-colors", active ? "text-brand-gold" : "text-white/45")}
+        strokeWidth={1.75}
+      />
       {link.label}
       {badge > 0 ? <CountPill count={badge} /> : null}
     </Link>
   );
 }
 
-// The sidebar rail's vertical nav — grouped ANALYZE / MANAGE, Fieldra-style.
+// The sidebar rail's vertical nav, grouped Analyze / Operate.
 export function SidebarNav({ newRequestCount = 0 }: { newRequestCount?: number }) {
   const pathname = usePathname();
 
@@ -97,7 +98,7 @@ export function SidebarNav({ newRequestCount = 0 }: { newRequestCount?: number }
     <nav className="flex flex-col gap-5">
       {GROUPS.map((group) => (
         <div key={group.label}>
-          <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-faint">
+          <p className="mb-1.5 px-3 text-xs text-white/50">
             {group.label}
           </p>
           <div className="flex flex-col gap-0.5">

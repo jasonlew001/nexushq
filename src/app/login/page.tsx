@@ -37,18 +37,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
+    <div className="flex min-h-screen items-center justify-center bg-brand px-6">
       <div className="w-full max-w-sm motion-safe:animate-fade-up">
-        <div className="mb-8 flex items-center justify-center gap-2">
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="" className="h-8 w-8" />
-          <h1 className="text-lg font-semibold tracking-tight">Nexus HQ</h1>
+          <img src="/logo.png" alt="" className="h-12 w-12 rounded-xl bg-white p-1.5" />
+          <div>
+            <h1 className="font-display text-[40px] leading-none text-white">
+              Nexus <span className="text-brand-gold">HQ</span>
+            </h1>
+            <p className="mt-2 text-[13px] text-white/60">Founders only.</p>
+          </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-lg border border-edge bg-surface p-6"
-        >
+        <form onSubmit={handleSubmit} className="rounded-xl bg-surface p-6">
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="mb-1.5 block text-xs text-muted">
@@ -87,7 +89,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md bg-ink px-3 py-2 text-sm font-medium text-surface transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="w-full rounded-md bg-brand-gold px-3 py-2 text-sm font-medium text-brand transition-[filter,opacity] duration-150 hover:brightness-105 active:brightness-95 disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>

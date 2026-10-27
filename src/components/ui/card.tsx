@@ -1,20 +1,19 @@
 import { cn } from "@/lib/cn";
 
+// Hairline border only: a border AND a drop shadow on the same panel reads
+// as generic dashboard chrome, and on this cool off-white the border alone
+// separates surfaces fine.
 export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border border-edge bg-surface p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn("rounded-lg border border-edge bg-surface p-4", className)}>{children}</div>;
 }
 
-export function SectionLabel({ children }: { children: React.ReactNode }) {
+// Panel title. Sentence case at body size, not a tiny all-caps kicker: the
+// title is the first thing read in a panel, so it should read like one.
+export function SectionLabel({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">{children}</h2>
+    <div className="mb-3 flex items-baseline justify-between gap-3">
+      <h2 className="text-sm font-medium text-ink">{children}</h2>
+      {aside ? <span className="text-xs text-faint">{aside}</span> : null}
+    </div>
   );
 }

@@ -33,6 +33,9 @@ function MrrChipSkeleton() {
   );
 }
 
+// Slim toolbar on every route: today, the MRR chip, and the two global
+// actions. Page titles live in each page (PageShell / Overview) so every
+// route has exactly one headline.
 export function Header() {
   const todayLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -41,22 +44,19 @@ export function Header() {
   });
 
   return (
-    <header className="mb-6 flex flex-wrap items-center justify-between gap-4 pb-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-          <span>{todayLabel}</span>
-          <span className="text-faint">·</span>
-          <Suspense fallback={<MrrChipSkeleton />}>
-            <MrrChip />
-          </Suspense>
-        </div>
+    <header className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-4">
+      <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+        <span>{todayLabel}</span>
+        <span className="text-faint">·</span>
+        <Suspense fallback={<MrrChipSkeleton />}>
+          <MrrChip />
+        </Suspense>
       </div>
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <Link
           href="/customers"
-          className="rounded-md border border-edge bg-surface px-3.5 py-2 text-[13px] text-ink transition-colors hover:border-edge-strong"
+          className="rounded-md border border-edge bg-surface px-3 py-1.5 text-[13px] text-ink transition-colors hover:border-edge-strong"
         >
           View customers
         </Link>

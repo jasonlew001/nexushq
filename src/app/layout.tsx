@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Instrument Sans for the UI, its serif sibling for headline numbers and
+// page titles only (one weight, used sparingly), JetBrains Mono for commit
+// SHAs, routes and durations. All self-hosted by next/font, no npm dep.
+const sans = Instrument_Sans({ subsets: ["latin"], variable: "--font-sans" });
+const display = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-display" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "Nexus HQ",
@@ -14,7 +19,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <body className="min-h-screen font-sans text-[13px]">{children}</body>
     </html>
   );

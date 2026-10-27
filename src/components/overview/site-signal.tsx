@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { Globe, ChevronRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, ShellCard } from "@/components/ui/skeleton";
 import { LiveDot } from "@/components/ui/live-dot";
+import { Sparkline } from "./mrr-sparkline";
 import { getVercelDeploys, getVercelErrors, getVercelTraffic, FAILED_STATES } from "@/lib/data/vercel-metrics";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-// Overview's one-line read on the main site, styled like RequestsAlert: calm
-// when healthy, outlined red when the newest push failed or production is
-// throwing 5xx today. Links to /site for the detail.
+// Overview's read on the main site: is it live, how many people came, and
+// what shipped last. Alarms (failed push, errors today) also surface in the
+// attention strip; this card is the steady-state view and links to /site.
 export async function SiteSignal() {
   const [{ data: deploys }, { data: errors }, { data: traffic }] = await Promise.all([
     getVercelDeploys(),
@@ -20,15 +21,9 @@ export async function SiteSignal() {
   if (!deploys.connected) {
     return (
       <Link href="/site" className="group block h-full">
-        <Card className="flex h-full items-center gap-3 transition-colors hover:border-edge-strong">
-          <span className="shrink-0 rounded-md bg-surface-2 p-1.5">
-            <Globe className="h-4 w-4 text-muted" strokeWidth={1.75} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Site</p>
-            <p className="truncate text-xs text-faint">Connect Vercel to see deploys and errors</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-faint" />
+        <Card className="h-full p-5 transition-colors hover:border-edge-strong">
+          <p className="text-sm font-medium">Main site</p>
+          <p className="mt-1 text-xs text-faint">Connect Vercel to see deploys, errors and traffic.</p>
         </Card>
       </Link>
     );
@@ -37,51 +32,66 @@ export async function SiteSignal() {
   const pendingFailed = deploys.pending != null && FAILED_STATES.has(deploys.pending.state);
   const building = deploys.pending != null && !pendingFailed;
   const errorsToday = errors.error ? null : errors.errorsToday;
-  // Red only for a push that didn't ship; a handful of 5xx against
-  // thousands of requests is worth a glance (amber), not an alarm.
-  const alarm = pendingFailed;
-  const caution = !alarm && (errorsToday ?? 0) > 0;
+  const tone = pendingFailed ? "danger" : building || (errorsToday ?? 0) > 0 ? "warn" : "accent";
+  const status = pendingFailed
+    ? "newest push didn't ship"
+    : building
+      ? "deploying"
+      : (errorsToday ?? 0) > 0
+        ? `live · ${errorsToday} error${errorsToday === 1 ? "" : "s"} today`
+        : "live";
 
-  const parts: string[] = [];
-  if (deploys.error) {
-    parts.push("deploy status unavailable");
-  } else if (pendingFailed) {
-    parts.push(`newest push ${deploys.pending!.state === "ERROR" ? "failed to build" : deploys.pending!.state.toLowerCase()}`);
-  } else if (building) {
-    parts.push("building a new push");
-  } else if (deploys.live) {
-    parts.push(`${deploys.live.sha ?? "deploy"} shipped ${formatRelativeTime(deploys.live.createdAt)}`);
-  }
-  if (errorsToday != null) parts.push(`${errorsToday} server error${errorsToday === 1 ? "" : "s"} today`);
-  if (!traffic.error && traffic.connected) parts.push(`${traffic.visitors7d.toLocaleString()} visitors · 7d`);
+  const delta =
+    traffic.visitorsPrev7d != null && traffic.visitorsPrev7d > 0
+      ? (traffic.visitors7d - traffic.visitorsPrev7d) / traffic.visitorsPrev7d
+      : null;
 
   return (
     <Link href="/site" className="group block h-full">
-      <Card
-        className={cn(
-          "flex h-full items-center gap-3 transition-colors",
-          alarm ? "border-danger/40 ring-1 ring-danger/30 hover:border-danger/60" : "hover:border-edge-strong"
-        )}
-      >
-        <span
-          className={cn("shrink-0 rounded-md p-1.5", alarm ? "bg-danger/10" : caution ? "bg-warn/10" : "bg-surface-2")}
-        >
-          <Globe
-            className={cn("h-4 w-4", alarm ? "text-danger" : caution ? "text-warn" : "text-muted")}
-            strokeWidth={1.75}
-          />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-sm font-medium">
-            Site
-            <LiveDot tone={alarm ? "danger" : building || caution ? "warn" : "accent"} />
-            <span className="text-xs font-normal text-muted">
-              {alarm ? "push didn't ship" : building ? "deploying" : caution ? "live, some errors" : "live"}
-            </span>
-          </p>
-          <p className="truncate text-xs text-faint">{parts.join(" · ")}</p>
+      <Card className="flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-edge-strong">
+        <div className="flex-1 p-5">
+          <div className="flex items-center justify-between">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              Main site
+              <LiveDot tone={tone} />
+              <span
+                className={cn(
+                  "text-xs font-normal",
+                  tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : "text-muted"
+                )}
+              >
+                {status}
+              </span>
+            </p>
+            <ArrowUpRight className="h-4 w-4 text-faint transition-colors group-hover:text-ink" />
+          </div>
+
+          {traffic.connected && !traffic.error ? (
+            <>
+              <p className="font-display mt-4 text-[40px] leading-[0.9]">{traffic.visitors7d.toLocaleString()}</p>
+              <p className="mt-1.5 text-xs text-muted">
+                visitors · 7 days
+                {delta != null && (
+                  <span className={cn("ml-2", delta >= 0 ? "text-accent" : "text-danger")}>
+                    {delta >= 0 ? "▲" : "▼"} {Math.abs(delta * 100).toFixed(0)}%
+                  </span>
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="mt-4 text-xs text-faint">Traffic unavailable right now.</p>
+          )}
+
+          {deploys.live && !deploys.error && (
+            <p className="mt-3 truncate text-xs text-faint">
+              <span className="font-mono text-muted">{deploys.live.sha ?? "deploy"}</span> shipped{" "}
+              {formatRelativeTime(deploys.live.createdAt)} · {deploys.live.message ?? ""}
+            </p>
+          )}
         </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-100" />
+        {traffic.daily.length > 1 && (
+          <Sparkline points={traffic.daily.map((d) => d.visitors)} colorVar="--accent" className="h-12" />
+        )}
       </Card>
     </Link>
   );
@@ -89,12 +99,11 @@ export async function SiteSignal() {
 
 export function SiteSignalSkeleton() {
   return (
-    <Card className="flex h-full items-center gap-3">
-      <Skeleton className="h-7 w-7 rounded-md" />
-      <div className="flex-1 space-y-1.5">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-3 w-56" />
-      </div>
-    </Card>
+    <ShellCard className="h-[220px] p-5">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="mt-5 h-10 w-24" />
+      <Skeleton className="mt-2 h-3 w-28" />
+      <Skeleton className="mt-4 h-3 w-full" />
+    </ShellCard>
   );
 }

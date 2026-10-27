@@ -32,7 +32,7 @@ export class SectionBoundary extends Component<Props, { failed: boolean }> {
     if (!this.state.failed) return this.props.children;
 
     return (
-      <div className="rounded-lg border border-edge bg-surface p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-lg border border-edge bg-surface p-4">
         <div className="flex items-start gap-2.5">
           <span className="mt-px shrink-0 rounded-md bg-warn/10 p-1.5">
             <AlertTriangle className="h-4 w-4 text-warn" strokeWidth={1.75} />

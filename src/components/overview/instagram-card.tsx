@@ -45,26 +45,25 @@ export async function InstagramCard() {
   const deltaPct = weekAgo != null && weekAgo > 0 ? (current - weekAgo) / weekAgo : null;
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-muted">Instagram followers</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold leading-none">{current.toLocaleString()}</p>
-          {deltaPct != null && (
-            <p className={`mt-1 text-xs ${deltaPct >= 0 ? "text-accent" : "text-danger"}`}>
-              {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct * 100).toFixed(1)}% vs 7 days ago
-            </p>
-          )}
+    <Link href="/social" className="group block h-full">
+      <Card className="flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-edge-strong">
+        <div className="flex-1 p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Instagram</p>
+            <Instagram className="h-4 w-4 text-faint transition-colors group-hover:text-ink" strokeWidth={1.75} />
+          </div>
+          <p className="font-display mt-4 text-[40px] leading-[0.9]">{current.toLocaleString()}</p>
+          <p className="mt-1.5 text-xs text-muted">
+            followers
+            {deltaPct != null && (
+              <span className={`ml-2 ${deltaPct >= 0 ? "text-accent" : "text-danger"}`}>
+                {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct * 100).toFixed(1)}% vs 7 days ago
+              </span>
+            )}
+          </p>
         </div>
-        <span className="rounded-md bg-surface-2 p-1.5">
-          <Instagram className="h-4 w-4 text-muted" strokeWidth={1.75} />
-        </span>
-      </div>
-      {recentPoints.length >= 2 && (
-        <div className="-mx-4 -mb-4 mt-3">
-          <Sparkline points={recentPoints} colorVar="--accent" />
-        </div>
-      )}
-    </Card>
+        {recentPoints.length >= 2 && <Sparkline points={recentPoints} colorVar="--accent" className="h-12" />}
+      </Card>
+    </Link>
   );
 }
