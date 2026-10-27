@@ -15,9 +15,12 @@ export type SubscriptionTier = "free" | "premium";
 export type AcqSource =
   | "coach_referral"
   | "instagram"
+  | "tiktok"
+  | "facebook"
   | "google_search"
   | "friend_teammate"
   | "tournament"
+  | "ntxpga"
   | "other"
   | null;
 

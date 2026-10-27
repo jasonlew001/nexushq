@@ -35,6 +35,22 @@ export const UNATTRIBUTED = "unattributed";
 export const OTHER_SOURCE = "other";
 export const NO_ACQ_DATA = "no_data";
 
+// "How did you hear about us" options, in the survey's own order. Must
+// match ACQ_SOURCES in fairway-mvp's src/lib/attribution.ts — the main app
+// adds options without HQ knowing, so readers should also keep any value
+// not listed here rather than filter it out.
+export const ACQ_SOURCE_ORDER = [
+  "coach_referral",
+  "instagram",
+  "tiktok",
+  "facebook",
+  "google_search",
+  "friend_teammate",
+  "tournament",
+  "ntxpga",
+  "other",
+] as const;
+
 // Manual-cost allocation — client-safe home for the same reason as above
 // (the cost entry form is a client component).
 export const PEOPLE = ["nick", "jason", "kamp"] as const;

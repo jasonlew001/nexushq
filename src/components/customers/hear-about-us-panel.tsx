@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getCustomerRows } from "@/lib/data/customers";
 import { acqSourceLabel } from "@/components/charts/chart-theme";
 import { formatPercent } from "@/lib/format";
-import type { AcqSource } from "@/lib/types";
+import { ACQ_SOURCE_ORDER } from "@/lib/constants";
 
 // "How did you hear about us" — the one-question survey on the main site's
 // post-payment success card (upgrade-success-survey.tsx -> api/attribution,
@@ -18,15 +18,6 @@ import type { AcqSource } from "@/lib/types";
 // the free text is listed under its option instead of splitting the row.
 // Distinct from the UTM columns next to it: those are first-touch, captured
 // by middleware for ANY visitor; this is self-reported and payer-only.
-
-const ORDER: Exclude<AcqSource, null>[] = [
-  "coach_referral",
-  "instagram",
-  "google_search",
-  "friend_teammate",
-  "tournament",
-  "other",
-];
 
 export async function HearAboutUsPanel() {
   const rows = await getCustomerRows();
@@ -46,7 +37,14 @@ export async function HearAboutUsPanel() {
     .filter((r) => r.acqSourceDetail)
     .map((r) => r.acqSourceDetail!);
 
-  const buckets = ORDER.filter((key) => counts.has(key)).map((key) => ({
+  // Every answer gets a bar, including options HQ doesn't know about yet —
+  // survey order first (the tie-break once sorted by count), unknowns after.
+  const known = new Set<string>(ACQ_SOURCE_ORDER);
+  const keys = [
+    ...ACQ_SOURCE_ORDER.filter((key) => counts.has(key)),
+    ...Array.from(counts.keys()).filter((key) => !known.has(key)),
+  ];
+  const buckets = keys.map((key) => ({
     key,
     label: acqSourceLabel(key),
     count: counts.get(key)!,

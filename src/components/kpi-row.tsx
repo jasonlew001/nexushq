@@ -6,14 +6,14 @@ import { getStripeMetrics } from "@/lib/data/stripe-metrics";
 import { formatCentsWhole, formatPercent } from "@/lib/format";
 import { Sparkline } from "@/components/overview/mrr-sparkline";
 
-function DeltaLine({ pct }: { pct: number | null }) {
+function DeltaLine({ pct, vs }: { pct: number | null; vs: string }) {
   if (pct == null) {
-    return <p className="mt-1 text-xs text-faint">— vs last week</p>;
+    return <p className="mt-1 text-xs text-faint">— vs {vs}</p>;
   }
   const up = pct >= 0;
   return (
     <p className={`mt-1 text-xs ${up ? "text-accent" : "text-danger"}`}>
-      {up ? "▲" : "▼"} {formatPercent(Math.abs(pct))} vs last week
+      {up ? "▲" : "▼"} {formatPercent(Math.abs(pct))} vs {vs}
     </p>
   );
 }
@@ -24,6 +24,7 @@ function KpiCard({
   value,
   valueClassName = "",
   deltaPct,
+  deltaVs = "last week",
   sparklinePoints,
   sparklineColorVar,
 }: {
@@ -32,6 +33,7 @@ function KpiCard({
   value: string;
   valueClassName?: string;
   deltaPct: number | null;
+  deltaVs?: string;
   sparklinePoints: number[];
   sparklineColorVar: string;
 }) {
@@ -41,7 +43,7 @@ function KpiCard({
         <div>
           <p className="text-xs text-muted">{label}</p>
           <p className={`tnum mt-1.5 text-2xl font-semibold leading-none ${valueClassName}`}>{value}</p>
-          <DeltaLine pct={deltaPct} />
+          <DeltaLine pct={deltaPct} vs={deltaVs} />
         </div>
         <span className="rounded-md bg-surface-2 p-1.5">
           <Icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
@@ -54,7 +56,7 @@ function KpiCard({
   );
 }
 
-// Three KPI cards: MRR, paying subscribers, signups this week — each with
+// Three KPI cards: MRR, paying subscribers, signups last 7 days — each with
 // an icon, a WoW delta line, and a sparkline running along the bottom.
 export async function KpiRow() {
   const [signups, stripe] = await Promise.all([getSignupMetrics(), getStripeMetrics()]);
@@ -93,10 +95,11 @@ export async function KpiRow() {
         sparklineColorVar="--accent"
       />
       <KpiCard
-        label="Signups this week"
+        label="Signups · last 7 days"
         icon={UserPlus}
-        value={signups.wow.current.toLocaleString()}
-        deltaPct={signups.wow.deltaPct}
+        value={signups.last7Days.current.toLocaleString()}
+        deltaPct={signups.last7Days.deltaPct}
+        deltaVs="prior 7 days"
         sparklinePoints={dailySeries}
         sparklineColorVar="--accent"
       />

@@ -37,9 +37,12 @@ export const CHART_GOLD = "#93701F"; // matches --gold, MRR/money only
 const ACQ_SOURCE_LABELS: Record<string, string> = {
   coach_referral: "Coach referral",
   instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
   google_search: "Google search",
   friend_teammate: "Friend / teammate",
   tournament: "Tournament",
+  ntxpga: "NTXPGA",
   other: "Other",
   [NO_ACQ_DATA]: "No data",
 };

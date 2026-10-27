@@ -57,7 +57,7 @@ export async function OverviewCards() {
       href: "/growth",
       label: "Growth",
       icon: TrendingUp,
-      stat: `${signups.wow.current} this week`,
+      stat: `${signups.last7Days.current} in last 7 days`,
       detail: `${signups.totalSignups.toLocaleString()} total signups · attribution & states`,
     },
     {

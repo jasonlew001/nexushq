@@ -28,8 +28,14 @@ type Range = (typeof RANGES)[number]["key"];
 // so no extra fetch. "Past month"/"all time" stay weekly-bucketed.
 const MONTH_WEEKS = 4;
 
+// weekStart is a UTC Monday ("2026-10-26"); format it in UTC too, or in a
+// US timezone it renders as the Sunday before.
 function shortWeekLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function shortDayLabel(iso: string): string {

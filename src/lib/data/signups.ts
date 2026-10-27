@@ -2,8 +2,7 @@ import { cache } from "react";
 import { getCustomerRows } from "./customers";
 import { getStripeMetrics } from "./stripe-metrics";
 import { startOfWeekUTC, weeksAgoUTC } from "@/lib/format";
-import { CHART_WEEKS, UNATTRIBUTED, OTHER_SOURCE, NO_ACQ_DATA } from "@/lib/constants";
-import type { AcqSource } from "@/lib/types";
+import { CHART_WEEKS, UNATTRIBUTED, OTHER_SOURCE, NO_ACQ_DATA, ACQ_SOURCE_ORDER } from "@/lib/constants";
 
 export interface WeeklySignupBucket {
   weekStart: string;
@@ -38,12 +37,13 @@ export interface SignupMetrics {
   weekly: WeeklySignupBucket[];
   byState: StateBucket[];
   unknownStateCount: number;
-  // "current" here is the last *complete* calendar week — the canonical
-  // "signups this week" figure, chosen because it's the one the WoW % is
-  // comparable against (a partial in-progress week can't be fairly compared
-  // to a full prior week). The action strip's "new this week" is a
-  // deliberately different, separate figure: the current in-progress week.
-  wow: { current: number; previous: number; deltaPct: number | null };
+  // Trailing 7 calendar days (UTC, including today) vs the 7 days before —
+  // the KPI card's "Signups · last 7 days". Same window as `dailySignups`,
+  // so it equals the sum of the chart's "Past week" bars and the sparkline
+  // under the card. Two full 7-day windows, so the delta is like-for-like.
+  // The action strip's "new this week" is a deliberately different figure:
+  // the current in-progress Mon–Sun week.
+  last7Days: { current: number; previous: number; deltaPct: number | null };
   // Same weekly buckets, restricted to customers who are currently paying
   // (premium + active/past_due) — the "exclude non-paying users" chart
   // filter. Note: cohort membership is *today's* payment status; a user who
@@ -65,14 +65,6 @@ export interface SignupMetrics {
 
 const TOP_UTM_SOURCE_CAP = 6;
 const DAILY_WINDOW_DAYS = 7;
-const ACQ_SOURCE_ORDER: Exclude<AcqSource, null>[] = [
-  "coach_referral",
-  "instagram",
-  "google_search",
-  "friend_teammate",
-  "tournament",
-  "other",
-];
 
 export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   const rows = await getCustomerRows();
@@ -166,7 +158,11 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     const key = row.acqSource ?? NO_ACQ_DATA;
     hearAboutMap.set(key, (hearAboutMap.get(key) ?? 0) + 1);
   }
-  const hearAboutUsBreakdown = [...ACQ_SOURCE_ORDER, NO_ACQ_DATA]
+  // Known options in survey order, then any value HQ doesn't know yet
+  // (a new survey option) so it shows instead of silently vanishing.
+  const knownAcq = new Set<string>([...ACQ_SOURCE_ORDER, NO_ACQ_DATA]);
+  const unknownAcq = Array.from(hearAboutMap.keys()).filter((key) => !knownAcq.has(key));
+  const hearAboutUsBreakdown = [...ACQ_SOURCE_ORDER, ...unknownAcq, NO_ACQ_DATA]
     .filter((key) => hearAboutMap.has(key))
     .map((source) => ({ source, count: hearAboutMap.get(source)! }));
 
@@ -184,14 +180,9 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     .map(([state, count]) => ({ state, count }))
     .sort((a, b) => b.count - a.count);
 
-  // WoW: last two *complete* weeks (excludes the current in-progress week).
-  const completeWeeks = weekly.filter((w) => w.weekStart < startOfWeekUTC(new Date()));
-  const current = completeWeeks.at(-1)?.total ?? 0;
-  const previous = completeWeeks.at(-2)?.total ?? 0;
-  const deltaPct = previous > 0 ? (current - previous) / previous : null;
-
-  // Attribution split for that same last-complete-week cohort — derived
+  // Attribution split for the last complete week's cohort — derived
   // from the weekly bucket we already built, not a new pass over `rows`.
+  const completeWeeks = weekly.filter((w) => w.weekStart < startOfWeekUTC(new Date()));
   const lastCompleteWeekBucket = completeWeeks.at(-1);
   const lastCompleteWeekUnattributed = lastCompleteWeekBucket?.byUtmSource[UNATTRIBUTED] ?? 0;
   const lastCompleteWeekAttribution: AttributionSplit = {
@@ -200,14 +191,15 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   };
 
   // Trailing 7 calendar days (UTC) including today, zero-filled so the bar
-  // chart always renders 7 bars regardless of gaps.
+  // chart always renders 7 bars regardless of gaps. Counted over twice the
+  // window so the 7 days before it are there for the last-7-days delta.
   const dailyMap = new Map<string, number>();
   const today = new Date();
-  const earliestDayKey = new Date(
-    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - (DAILY_WINDOW_DAYS - 1))
-  )
-    .toISOString()
-    .slice(0, 10);
+  const dayKeyAgo = (n: number) =>
+    new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - n))
+      .toISOString()
+      .slice(0, 10);
+  const earliestDayKey = dayKeyAgo(DAILY_WINDOW_DAYS * 2 - 1);
   for (const row of rows) {
     const dayKey = row.signedUpAt.slice(0, 10);
     if (dayKey < earliestDayKey) continue;
@@ -215,10 +207,15 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   }
   const dailySignups: DailySignupBucket[] = [];
   for (let i = DAILY_WINDOW_DAYS - 1; i >= 0; i--) {
-    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - i));
-    const key = d.toISOString().slice(0, 10);
+    const key = dayKeyAgo(i);
     dailySignups.push({ date: key, count: dailyMap.get(key) ?? 0 });
   }
+  const current = dailySignups.reduce((sum, d) => sum + d.count, 0);
+  let previous = 0;
+  for (let i = DAILY_WINDOW_DAYS * 2 - 1; i >= DAILY_WINDOW_DAYS; i--) {
+    previous += dailyMap.get(dayKeyAgo(i)) ?? 0;
+  }
+  const deltaPct = previous > 0 ? (current - previous) / previous : null;
 
   return {
     totalSignups,
@@ -228,7 +225,7 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     weeklyPayingOnly,
     byState,
     unknownStateCount,
-    wow: { current, previous, deltaPct },
+    last7Days: { current, previous, deltaPct },
     dailySignups,
     lastCompleteWeekAttribution,
     topUtmSources,
