@@ -74,6 +74,19 @@ export const UNASSIGNED = "unassigned";
 // Coaches get this share of the FIRST payment made with their referral code.
 export const COACH_REFERRAL_CUT = 0.25;
 
+// Sales reps — client-safe home (the Sales page lists are client components).
+// Individual commission is a flat amount by the plan of the customer's first
+// payment; academies earn a share of their first payment; junior tours are a
+// flat rate a founder enters per deal. Kind values must match sql/012.
+export const SALES_CLAIM_KINDS = ["individual", "academy", "tour"] as const;
+export type SalesClaimKind = (typeof SALES_CLAIM_KINDS)[number];
+export const REP_PLAN_COMMISSION_CENTS = { monthly: 5000, six_month: 10000, annual: 17500 } as const;
+export type RepPlan = keyof typeof REP_PLAN_COMMISSION_CENTS;
+export const REP_ACADEMY_CUT = 0.25;
+// A claim still counts if submitted up to this many days AFTER the customer's
+// first payment (rep was slow to log it). Earlier payments don't count.
+export const REP_CLAIM_GRACE_DAYS = 7;
+
 // Requests inbox triage states — client-safe home (the requests list is a
 // client component). Must match the check constraint in sql/004.
 export const REQUEST_STATUSES = ["new", "in_progress", "resolved"] as const;

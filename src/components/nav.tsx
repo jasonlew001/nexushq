@@ -13,6 +13,7 @@ import {
   Inbox,
   Lightbulb,
   Globe,
+  Handshake,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -61,6 +62,7 @@ const GROUPS: readonly NavGroup[] = [
     links: [
       { href: "/site", label: "Site", icon: Globe },
       { href: "/requests", label: "Requests", icon: Inbox },
+      { href: "/sales", label: "Sales", icon: Handshake },
       { href: "/costs", label: "Costs", icon: Receipt },
       { href: "/data", label: "Data", icon: Database },
     ],
