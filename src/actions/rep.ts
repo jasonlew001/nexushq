@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireRep } from "@/lib/auth";
@@ -19,13 +18,38 @@ function normalizeEmail(raw: string): string {
   return email;
 }
 
-// Sends a magic link only to active reps, but answers the same either way
-// so the form can't be used to discover who is a rep. The roster check uses
-// the service role because the caller has no session yet (RLS would hide
-// every row). shouldCreateUser: a rep's first sign-in creates their auth
-// user in the shared Supabase project (agreed with Jason, 2026-11-01).
-export async function sendRepLoginLink(rawEmail: string): Promise<void> {
-  const email = normalizeEmail(rawEmail);
+const MIN_PASSWORD = 8;
+
+type AuthResult = { error: string } | { ok: true };
+
+// Ordinary email + password sign-in. Server-side so the session cookies are
+// set by the same Supabase SSR client every other HQ request reads.
+export async function repSignIn(rawEmail: string, password: string): Promise<AuthResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: rawEmail.trim().toLowerCase(),
+    password,
+  });
+  return error ? { error: "Wrong email or password." } : { ok: true };
+}
+
+// First-time setup, no email verification (Jason's call, 2026-11-01: a few
+// reps on a one-month test; the accepted risk is that whoever sets the
+// password first for a listed email owns that portal). Only ever CREATES an
+// account: if one already exists for the email (the rep already set theirs,
+// or they have a main-site account) it refuses, so this can never overwrite
+// anyone's password. Service role: the caller has no session yet, so RLS
+// would hide the roster, and creating a pre-confirmed user is admin-only.
+export async function repSetPassword(rawEmail: string, password: string): Promise<AuthResult> {
+  let email: string;
+  try {
+    email = normalizeEmail(rawEmail);
+  } catch {
+    return { error: "Enter a valid email." };
+  }
+  if (password.length < MIN_PASSWORD) {
+    return { error: `Password must be at least ${MIN_PASSWORD} characters.` };
+  }
 
   const admin = getAdminClient();
   const { data: rep } = await admin
@@ -34,21 +58,22 @@ export async function sendRepLoginLink(rawEmail: string): Promise<void> {
     .eq("email", email)
     .eq("active", true)
     .maybeSingle();
-  if (!rep) return;
+  if (!rep) return { error: "That email isn't set up as a rep. Check with Nexus." };
 
-  const h = headers();
-  const origin =
-    h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error: createError } = await admin.auth.admin.createUser({
     email,
-    options: { emailRedirectTo: `${origin}/auth/callback?next=/rep`, shouldCreateUser: true },
+    password,
+    email_confirm: true,
   });
-  if (error) {
-    console.error("[rep login] signInWithOtp failed:", error.message);
-    throw new Error("Couldn't send the link right now. Try again in a minute.");
+  if (createError) {
+    if (createError.code === "email_exists" || /already/i.test(createError.message)) {
+      return { error: "This email already has an account. Sign in with its password instead." };
+    }
+    console.error("[rep setup] createUser failed:", createError.message);
+    return { error: createError.message };
   }
+
+  return repSignIn(email, password);
 }
 
 export async function submitRepClaim(input: {

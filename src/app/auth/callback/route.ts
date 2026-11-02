@@ -39,8 +39,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Rep magic links carry ?next=/rep. Allow-listed, not echoed, so the
-  // callback can't be used as an open redirect.
-  const next = requestUrl.searchParams.get("next") === "/rep" ? "/rep" : "/";
-  return NextResponse.redirect(new URL(next, request.url));
+  return NextResponse.redirect(new URL("/", request.url));
 }
