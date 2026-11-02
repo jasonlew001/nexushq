@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createRep, updateRep } from "@/actions/sales";
+import { createRep, deleteRep, updateRep } from "@/actions/sales";
 import type { SalesRep } from "@/lib/data/sales";
+
+type RepWithHistory = SalesRep & { claimCount: number; payoutCount: number };
 
 const LABEL = "mb-1 block text-[10px] uppercase tracking-wider text-faint";
 const INPUT =
@@ -15,7 +17,7 @@ function toCents(dollars: string): number | null {
   return dollars.trim() === "" || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100);
 }
 
-function RepRow({ rep }: { rep: SalesRep }) {
+function RepRow({ rep }: { rep: RepWithHistory }) {
   const [salary, setSalary] = useState(String(rep.monthlySalaryCents / 100));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -32,6 +34,22 @@ function RepRow({ rep }: { rep: SalesRep }) {
         await updateRep(rep.id, { monthlySalaryCents: cents, active });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save");
+      }
+    });
+  }
+
+  function remove() {
+    const claims =
+      rep.claimCount > 0
+        ? ` This also deletes the ${rep.claimCount} customer claim${rep.claimCount === 1 ? "" : "s"} they logged.`
+        : "";
+    if (!confirm(`Remove ${rep.name}?${claims} This can't be undone.`)) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await deleteRep(rep.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to remove");
       }
     });
   }
@@ -76,13 +94,28 @@ function RepRow({ rep }: { rep: SalesRep }) {
           >
             {rep.active ? "Deactivate" : "Reactivate"}
           </button>
+          {!rep.active &&
+            (rep.payoutCount > 0 ? (
+              <span className="text-xs text-faint" title="Payout history is kept as the money record">
+                Has payouts
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={remove}
+                disabled={isPending}
+                className="text-xs text-faint hover:text-danger disabled:opacity-60"
+              >
+                Remove
+              </button>
+            ))}
         </div>
       </td>
     </tr>
   );
 }
 
-export function RepsCard({ reps }: { reps: SalesRep[] }) {
+export function RepsCard({ reps }: { reps: RepWithHistory[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [salary, setSalary] = useState("0");

@@ -70,6 +70,38 @@ export async function updateRep(
   revalidatePath("/sales");
 }
 
+// Removes a deactivated rep and the claims they logged (reviews cascade).
+// Refused once any payout is recorded for them — payouts are the money
+// record, and their FK (on delete restrict) would block it anyway. Their
+// Supabase login is left alone (it may be a main-site account); without a
+// roster row it simply can't open the portal any more.
+export async function deleteRep(id: string): Promise<void> {
+  await requireFounder();
+  const supabase = createSupabaseServerClient();
+
+  const { data: rep, error: repError } = await supabase
+    .from("hq_sales_reps")
+    .select("active")
+    .eq("id", id)
+    .maybeSingle();
+  if (repError) throw new Error(`Failed to load rep: ${repError.message}`);
+  if (!rep) throw new Error("Rep not found");
+  if (rep.active) throw new Error("Deactivate the rep before removing them");
+
+  const { count, error: payoutError } = await supabase
+    .from("hq_sales_payouts")
+    .select("id", { count: "exact", head: true })
+    .eq("rep_id", id);
+  if (payoutError) throw new Error(`Failed to check payouts: ${payoutError.message}`);
+  if (count) throw new Error("This rep has payout history, so they can't be removed. Keep them deactivated.");
+
+  const { error: claimsError } = await supabase.from("hq_sales_claims").delete().eq("rep_id", id);
+  if (claimsError) throw new Error(`Failed to remove claims: ${claimsError.message}`);
+  const { error } = await supabase.from("hq_sales_reps").delete().eq("id", id);
+  if (error) throw new Error(`Failed to remove rep: ${error.message}`);
+  revalidatePath("/sales");
+}
+
 // Founder-entered claim (e.g. a rep texted it in before the rep portal
 // exists). claimedOn backdates it — only founders can (trigger in sql/012).
 export async function createClaim(input: {

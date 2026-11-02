@@ -23,7 +23,13 @@ export async function SalesPanel() {
     <div className="space-y-4">
       <PayoutsCard reps={reps} claims={claims} payouts={payouts} />
       <ClaimsCard reps={reps} claims={claims} />
-      <RepsCard reps={reps} />
+      <RepsCard
+        reps={reps.map((r) => ({
+          ...r,
+          claimCount: claims.filter((c) => c.repId === r.id).length,
+          payoutCount: payouts.filter((p) => p.repId === r.id).length,
+        }))}
+      />
     </div>
   );
 }
