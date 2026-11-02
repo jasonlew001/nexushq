@@ -94,8 +94,12 @@ function StatementRow({
       {(payout ? payout.lineItems.length : lines.length) > 0 && (
         <ul className="mt-1.5 space-y-0.5 pl-3 text-xs text-faint">
           {(payout
-            ? payout.lineItems.map((l) => ({ id: l.claimId, email: l.customerEmail, cents: l.commissionCents }))
-            : lines.map((c) => ({ id: c.id, email: c.customerEmail, cents: c.commissionCents }))
+            ? payout.lineItems.map((l) => ({
+                id: l.claimId,
+                email: l.customerName || l.customerEmail || "Customer",
+                cents: l.commissionCents,
+              }))
+            : lines.map((c) => ({ id: c.id, email: c.customerName || c.customerEmail || "Customer", cents: c.commissionCents }))
           ).map((l) => (
             <li key={l.id} className="flex justify-between gap-3">
               <span className="truncate">{l.email}</span>

@@ -106,8 +106,9 @@ export async function deleteRep(id: string): Promise<void> {
 // exists). claimedOn backdates it — only founders can (trigger in sql/012).
 export async function createClaim(input: {
   repId: string;
-  customerEmail: string;
+  customerEmail: string | null; // optional since sql/014 — name-only is fine
   customerName: string | null;
+  customerPhone: string | null;
   kind: SalesClaimKind;
   repNote: string | null;
   claimedOn: string | null; // "YYYY-MM-DD", null = now
@@ -115,8 +116,14 @@ export async function createClaim(input: {
   await requireFounder();
   if (!input.repId) throw new Error("Pick a rep");
   if (!SALES_CLAIM_KINDS.includes(input.kind)) throw new Error("Invalid type");
+  const customerEmail = input.customerEmail?.trim() ? normalizeEmail(input.customerEmail) : null;
   const customerName = input.customerName?.trim() || null;
   if (customerName && customerName.length > 100) throw new Error("Name must be 100 characters or fewer");
+  if (!customerEmail && (!customerName || customerName.length < 2)) {
+    throw new Error("Enter the customer's email or their name");
+  }
+  const customerPhone = input.customerPhone?.trim() || null;
+  if (customerPhone && customerPhone.length > 30) throw new Error("Phone must be 30 characters or fewer");
   const repNote = input.repNote?.trim() || null;
   if (repNote && repNote.length > 500) throw new Error("Note must be 500 characters or fewer");
   if (input.claimedOn && !DATE_RE.test(input.claimedOn)) throw new Error("Invalid claim date");
@@ -124,8 +131,9 @@ export async function createClaim(input: {
   const supabase = createSupabaseServerClient();
   const { error } = await supabase.from("hq_sales_claims").insert({
     rep_id: input.repId,
-    customer_email: normalizeEmail(input.customerEmail),
+    customer_email: customerEmail,
     customer_name: customerName,
+    customer_phone: customerPhone,
     kind: input.kind,
     rep_note: repNote,
     ...(input.claimedOn ? { created_at: `${input.claimedOn}T12:00:00Z` } : {}),
@@ -147,6 +155,7 @@ export async function saveClaimReview(
   input: {
     rejected: boolean;
     linkedEmail: string | null; // the account's real email, if it differs
+    linkedUserId?: string | null; // or a suggested match picked directly
     paymentCents: number | null;
     commissionCents: number | null;
     earnedOn: string | null;
@@ -161,7 +170,11 @@ export async function saveClaimReview(
   const commissionCents = validCents(input.commissionCents, "Commission");
 
   let linkedUserId: string | null = null;
-  if (input.linkedEmail?.trim()) {
+  if (input.linkedUserId) {
+    const { data: users } = await getAllAuthUsers();
+    if (!users.some((u) => u.id === input.linkedUserId)) throw new Error("That account no longer exists");
+    linkedUserId = input.linkedUserId;
+  } else if (input.linkedEmail?.trim()) {
     const email = normalizeEmail(input.linkedEmail);
     const { data: users } = await getAllAuthUsers();
     const user = users.find((u) => u.email?.toLowerCase() === email);

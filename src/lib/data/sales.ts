@@ -28,6 +28,7 @@ export type ClaimStatus =
   | "rejected"
   | "conflict" // an earlier claim (any rep) owns this customer
   | "waiting_signup" // no main-site account with this email yet
+  | "needs_match" // no account by email, but name/phone suggests candidates
   | "not_paid" // account exists, no paid invoice yet
   | "paid_before_claim" // first payment predates the claim (beyond grace)
   | "plan_unknown" // paid, but the plan couldn't be read — needs an amount
@@ -38,11 +39,15 @@ export interface SalesClaim {
   id: string;
   repId: string;
   repName: string;
-  customerEmail: string;
+  customerEmail: string | null; // null = rep logged them by name only
   customerName: string | null;
+  customerPhone: string | null;
   kind: SalesClaimKind;
   repNote: string | null;
   claimedAt: string;
+  // Possible accounts for an unmatched individual claim, best first. Founder
+  // view only — never sent to reps.
+  candidates: MatchCandidate[];
   // Resolved main-site account (by email, or a founder's manual link).
   matchedUserId: string | null;
   matchedEmail: string | null;
@@ -75,9 +80,20 @@ export interface SalesPayout {
   paidAt: string;
 }
 
+export interface MatchCandidate {
+  userId: string;
+  email: string | null;
+  name: string;
+  signedUpAt: string;
+  premium: boolean; // subscription_tier = premium (cheap paid signal; no Stripe call)
+  reason: "phone" | "same_name" | "email_name" | "similar_name";
+  claimedByRep: string | null; // another non-rejected claim already owns this account
+}
+
 export interface PayoutLine {
   claimId: string;
-  customerEmail: string;
+  customerEmail: string | null;
+  customerName?: string | null; // absent on snapshots taken before sql/014
   kind: SalesClaimKind;
   commissionCents: number;
 }
@@ -101,8 +117,9 @@ interface RepRow {
 interface ClaimRow {
   id: string;
   rep_id: string;
-  customer_email: string;
+  customer_email: string | null;
   customer_name: string | null;
+  customer_phone: string | null;
   kind: SalesClaimKind;
   rep_note: string | null;
   created_at: string;
@@ -181,26 +198,64 @@ async function fetchFirstPayment(customerId: string): Promise<FirstPayment | nul
 }
 
 const PROFILE_PAGE_SIZE = 1000;
+const MAX_CANDIDATES = 5;
 
-// user id -> Stripe customer id, for every profile that has one.
-async function fetchCustomerIds(supabase: SupabaseClient): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+interface ProfileLite {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  stripe_customer_id: string | null;
+  subscription_tier: string | null;
+}
+
+// Every profile's matching fields (names/phone for suggestions, Stripe id for
+// payments). ~4k rows, paged.
+async function fetchProfiles(supabase: SupabaseClient): Promise<ProfileLite[]> {
+  const out: ProfileLite[] = [];
   let from = 0;
   for (;;) {
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("id, stripe_customer_id")
-      .not("stripe_customer_id", "is", null)
+      .select("id, first_name, last_name, phone, stripe_customer_id, subscription_tier")
       .range(from, from + PROFILE_PAGE_SIZE - 1);
     if (error) throw new Error(`Failed to load user_profiles: ${error.message}`);
-    for (const row of (data ?? []) as { id: string; stripe_customer_id: string }[]) {
-      out.set(row.id, row.stripe_customer_id);
-    }
+    out.push(...((data ?? []) as ProfileLite[]));
     if (!data || data.length < PROFILE_PAGE_SIZE) break;
     from += PROFILE_PAGE_SIZE;
   }
   return out;
 }
+
+// Lowercase, accent-free word tokens: "José  O'Neil" -> ["jose", "o", "neil"].
+function nameTokens(s: string | null): string[] {
+  if (!s) return [];
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+// Last 10 digits, so "+1 (214) 555-0100" and "2145550100" compare equal.
+function phoneKey(s: string | null): string | null {
+  const digits = (s ?? "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : null;
+}
+
+// "Mike" ~ "Michael", "Alex" ~ "Alexander": shared 3-letter start either way.
+function similarFirst(a: string, b: string): boolean {
+  return a.startsWith(b.slice(0, 3)) || b.startsWith(a.slice(0, 3));
+}
+
+const REASON_RANK: Record<MatchCandidate["reason"], number> = {
+  phone: 0,
+  same_name: 1,
+  email_name: 2,
+  similar_name: 3,
+};
 
 // The whole sales picture: reps, claims, reviews and payouts joined with
 // auth.users emails and user_profiles' Stripe customer ids, then one pair of
@@ -216,7 +271,7 @@ async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
       .order("created_at"),
     supabase
       .from("hq_sales_claims")
-      .select("id, rep_id, customer_email, customer_name, kind, rep_note, created_at")
+      .select("id, rep_id, customer_email, customer_name, customer_phone, kind, rep_note, created_at")
       .order("created_at"),
     supabase
       .from("hq_sales_claim_reviews")
@@ -239,32 +294,114 @@ async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
   const reviewRows = (reviews.data ?? []) as unknown as ReviewRow[];
   const payoutRows = (payouts.data ?? []) as unknown as PayoutRow[];
 
-  const [{ data: authUsers }, customerIdByUser] = await Promise.all([
-    getAllAuthUsers(),
-    fetchCustomerIds(supabase),
-  ]);
+  const [{ data: authUsers }, profiles] = await Promise.all([getAllAuthUsers(), fetchProfiles(supabase)]);
   const userByEmail = new Map(
     authUsers.filter((u) => u.email).map((u) => [u.email!.toLowerCase(), u])
   );
-  const emailById = new Map(authUsers.map((u) => [u.id, u.email]));
+  const authById = new Map(authUsers.map((u) => [u.id, u]));
+  const customerIdByUser = new Map(
+    profiles.filter((p) => p.stripe_customer_id).map((p) => [p.id, p.stripe_customer_id!])
+  );
   const repById = new Map(repRows.map((r) => [r.id, r]));
   const reviewByClaim = new Map(reviewRows.map((r) => [r.claim_id, r]));
 
+  // Match indexes. A user's name is their profile first+last when both are
+  // set, else their auth provider name (Google full_name) — measured
+  // 2026-11-01: 61 of ~3.8k profiles have both names, ~1.3k of ~4.4k auth
+  // users have a provider name. Phones come from profiles only.
+  const profileById = new Map(profiles.map((p) => [p.id, p]));
+  const nameById = new Map<string, string>();
+  const usersByLast = new Map<string, { id: string; first: string }[]>();
+  for (const u of authUsers) {
+    const p = profileById.get(u.id);
+    const name = p?.first_name && p?.last_name ? `${p.first_name} ${p.last_name}` : u.name ?? null;
+    const tokens = nameTokens(name);
+    if (tokens.length < 2) continue;
+    nameById.set(u.id, name!);
+    const last = tokens[tokens.length - 1];
+    usersByLast.set(last, [...(usersByLast.get(last) ?? []), { id: u.id, first: tokens[0] }]);
+  }
+  const usersByPhone = new Map<string, string[]>();
+  for (const p of profiles) {
+    const ph = phoneKey(p.phone);
+    if (ph) usersByPhone.set(ph, [...(usersByPhone.get(ph) ?? []), p.id]);
+  }
+  // Email local parts, letters only ("mackaymitchell25@" -> "mackaymitchell").
+  const emailLetters = authUsers
+    .filter((u) => u.email)
+    .map((u) => ({ id: u.id, letters: u.email!.split("@")[0].toLowerCase().replace(/[^a-z]/g, "") }));
+
   // Resolve each claim to an account first, so conflicts can be keyed by the
   // account (two different emails a founder linked to one user still clash).
+  // Name-only claims stay unresolved until a founder links them.
   const resolved = claimRows.map((c) => {
     const review = reviewByClaim.get(c.id) ?? null;
-    const userId = review?.linked_user_id ?? userByEmail.get(c.customer_email)?.id ?? null;
-    return { c, review, userId };
+    const byEmail = c.customer_email ? userByEmail.get(c.customer_email)?.id ?? null : null;
+    const userId = review?.linked_user_id ?? byEmail;
+    const unresolvedKey = c.customer_email
+      ? `email:${c.customer_email}`
+      : `name:${nameTokens(c.customer_name).join(" ") || c.id}`;
+    return { c, review, userId, key: userId ?? unresolvedKey };
   });
 
   // First non-rejected claim per customer wins; claims are ordered by
   // created_at, so the first seen is the earliest.
   const ownerByKey = new Map<string, ClaimRow>();
-  for (const { c, review, userId } of resolved) {
+  for (const { c, review, key } of resolved) {
     if (review?.rejected) continue;
-    const key = userId ?? `email:${c.customer_email}`;
     if (!ownerByKey.has(key)) ownerByKey.set(key, c);
+  }
+
+  // Suggested accounts for an unmatched claim: same phone, same first + last
+  // name, first + last name both inside the email, then same last name with a
+  // similar first name. Never applied automatically — a founder links it.
+  function findCandidates(c: ClaimRow): MatchCandidate[] {
+    const found = new Map<string, MatchCandidate["reason"]>();
+    const add = (id: string, reason: MatchCandidate["reason"]) => {
+      const prev = found.get(id);
+      if (!prev || REASON_RANK[reason] < REASON_RANK[prev]) found.set(id, reason);
+    };
+
+    const ph = phoneKey(c.customer_phone);
+    if (ph) for (const id of usersByPhone.get(ph) ?? []) add(id, "phone");
+
+    const tokens = nameTokens(c.customer_name);
+    if (tokens.length >= 2) {
+      const first = tokens[0];
+      const last = tokens[tokens.length - 1];
+      for (const u of usersByLast.get(last) ?? []) {
+        if (u.first === first) add(u.id, "same_name");
+        else if (similarFirst(u.first, first)) add(u.id, "similar_name");
+      }
+      // Both names (3+ letters each, so initials/short names can't flood it).
+      if (first.length >= 3 && last.length >= 3) {
+        for (const e of emailLetters) {
+          if (e.letters.includes(last) && e.letters.includes(first)) add(e.id, "email_name");
+        }
+      }
+    }
+
+    return Array.from(found.entries())
+      .map(([id, reason]) => {
+        const p = profileById.get(id);
+        const owner = ownerByKey.get(id);
+        return {
+          userId: id,
+          email: authById.get(id)?.email ?? null,
+          name: nameById.get(id) ?? "(no name on account)",
+          signedUpAt: authById.get(id)?.created_at ?? "",
+          premium: p?.subscription_tier === "premium",
+          reason,
+          claimedByRep: owner && owner.id !== c.id ? repById.get(owner.rep_id)?.name ?? "another rep" : null,
+        };
+      })
+      .sort(
+        (a, b) =>
+          REASON_RANK[a.reason] - REASON_RANK[b.reason] ||
+          Number(b.premium) - Number(a.premium) ||
+          b.signedUpAt.localeCompare(a.signedUpAt)
+      )
+      .slice(0, MAX_CANDIDATES);
   }
 
   // Stripe lookups only for individual claims that own their customer.
@@ -283,9 +420,10 @@ async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
 
   const graceMs = REP_CLAIM_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
-  const out: SalesClaim[] = resolved.map(({ c, review, userId }) => {
-    const key = userId ?? `email:${c.customer_email}`;
+  const out: SalesClaim[] = resolved.map(({ c, review, userId, key }) => {
     const owner = ownerByKey.get(key);
+    const candidates =
+      c.kind === "individual" && !userId && !review?.rejected ? findCandidates(c) : [];
     const cid = userId ? customerIdByUser.get(userId) ?? null : null;
     const first = cid ? firstPaymentByCustomer.get(cid) ?? null : null;
     const manualCommission = review?.commission_cents ?? null;
@@ -315,7 +453,7 @@ async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
     } else if (c.kind === "tour") {
       status = "needs_amount";
     } else if (!userId) {
-      status = "waiting_signup";
+      status = candidates.length > 0 ? "needs_match" : "waiting_signup";
     } else if (!first) {
       status = "not_paid";
     } else if (first.paidAt * 1000 < new Date(c.created_at).getTime() - graceMs) {
@@ -337,11 +475,13 @@ async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
       repName: repById.get(c.rep_id)?.name ?? "Unknown rep",
       customerEmail: c.customer_email,
       customerName: c.customer_name,
+      customerPhone: c.customer_phone,
       kind: c.kind,
       repNote: c.rep_note,
       claimedAt: c.created_at,
+      candidates,
       matchedUserId: userId,
-      matchedEmail: userId ? emailById.get(userId) ?? null : null,
+      matchedEmail: userId ? authById.get(userId)?.email ?? null : null,
       linkedManually: !!review?.linked_user_id,
       firstPaidAt: first ? new Date(first.paidAt * 1000).toISOString() : null,
       firstPaidCents: first?.amountCents ?? null,
@@ -402,7 +542,7 @@ export type RepClaimStatus = "pending" | "review" | "confirmed" | "not_approved"
 
 export interface RepClaimView {
   id: string;
-  customerEmail: string;
+  customerEmail: string | null;
   customerName: string | null;
   kind: SalesClaimKind;
   claimedAt: string;
@@ -420,6 +560,7 @@ export interface RepPortalData {
 
 const REP_STATUS: Record<ClaimStatus, RepClaimStatus> = {
   waiting_signup: "pending",
+  needs_match: "pending",
   not_paid: "pending",
   needs_amount: "review",
   plan_unknown: "review",
@@ -475,6 +616,7 @@ export function commissionLines(claims: SalesClaim[], repId: string, month: stri
     .map((c) => ({
       claimId: c.id,
       customerEmail: c.customerEmail,
+      customerName: c.customerName,
       kind: c.kind,
       commissionCents: c.commissionCents,
     }));

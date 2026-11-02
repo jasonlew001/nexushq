@@ -9,7 +9,7 @@ import { createClaim, deleteClaim, saveClaimReview } from "@/actions/sales";
 import { formatCentsWhole, formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { REP_ACADEMY_CUT, SALES_CLAIM_KINDS, type RepPlan, type SalesClaimKind } from "@/lib/constants";
-import type { ClaimStatus, SalesClaim, SalesRep } from "@/lib/data/sales";
+import type { ClaimStatus, MatchCandidate, SalesClaim, SalesRep } from "@/lib/data/sales";
 
 const LABEL = "mb-1 block text-[10px] uppercase tracking-wider text-faint";
 const INPUT =
@@ -30,6 +30,7 @@ const PLAN_LABEL: Record<RepPlan, string> = {
 const STATUS: Record<ClaimStatus, { label: string; tone: "neutral" | "accent" | "gold" | "danger" | "warn" }> = {
   confirmed: { label: "Confirmed", tone: "accent" },
   waiting_signup: { label: "Waiting for signup", tone: "neutral" },
+  needs_match: { label: "Possible match", tone: "gold" },
   not_paid: { label: "Signed up, not paid", tone: "neutral" },
   needs_amount: { label: "Needs amount", tone: "gold" },
   plan_unknown: { label: "Plan unknown", tone: "gold" },
@@ -42,7 +43,11 @@ type View = "review" | "pending" | "confirmed" | "rejected" | "all";
 
 const VIEWS: { key: View; label: string; statuses: ClaimStatus[] | null }[] = [
   { key: "all", label: "All", statuses: null },
-  { key: "review", label: "Needs review", statuses: ["needs_amount", "plan_unknown", "paid_before_claim", "conflict"] },
+  {
+    key: "review",
+    label: "Needs review",
+    statuses: ["needs_match", "needs_amount", "plan_unknown", "paid_before_claim", "conflict"],
+  },
   { key: "pending", label: "Pending", statuses: ["waiting_signup", "not_paid"] },
   { key: "confirmed", label: "Confirmed", statuses: ["confirmed"] },
   { key: "rejected", label: "Rejected", statuses: ["rejected"] },
@@ -51,6 +56,17 @@ const VIEWS: { key: View; label: string; statuses: ClaimStatus[] | null }[] = [
 function toCents(dollars: string): number | null {
   const n = Number(dollars);
   return dollars.trim() === "" || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100);
+}
+
+const MATCH_REASON: Record<MatchCandidate["reason"], string> = {
+  phone: "Phone matches",
+  same_name: "Same name",
+  email_name: "Name in email",
+  similar_name: "Similar name",
+};
+
+function claimLabel(c: SalesClaim): string {
+  return c.customerName || c.customerEmail || "Unnamed customer";
 }
 
 function centsToInput(cents: number | null | undefined): string {
@@ -73,7 +89,8 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function save(rejected: boolean) {
+  // linkTo: a suggested match's user id, linked in one click.
+  function save(rejected: boolean, linkTo?: string) {
     setError(null);
     if (payment.trim() && toCents(payment) == null) return setError("Enter a valid payment amount");
     if (commission.trim() && toCents(commission) == null) return setError("Enter a valid commission");
@@ -81,7 +98,8 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
       try {
         await saveClaimReview(claim.id, {
           rejected,
-          linkedEmail: linkedEmail || null,
+          linkedEmail: linkTo ? null : linkedEmail || null,
+          linkedUserId: linkTo ?? null,
           paymentCents: toCents(payment),
           commissionCents: toCents(commission),
           earnedOn:
@@ -95,7 +113,7 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
   }
 
   function remove() {
-    if (!confirm(`Delete the claim for ${claim.customerEmail}? This can't be undone.`)) return;
+    if (!confirm(`Delete the claim for ${claimLabel(claim)}? This can't be undone.`)) return;
     startTransition(async () => {
       try {
         await deleteClaim(claim.id);
@@ -118,9 +136,19 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
               {claim.linkedManually && " (linked by hand)"}
             </span>
           ) : (
-            <span className="text-faint">no main-site account with this email yet</span>
+            <span className="text-faint">
+              {claim.customerEmail ? "no main-site account with this email yet" : "not linked yet (no email given)"}
+            </span>
           )}
         </p>
+        {(claim.customerEmail || claim.customerPhone) && (
+          <p className="break-all">
+            Rep gave:{" "}
+            <span className="text-ink">
+              {[claim.customerEmail, claim.customerPhone].filter(Boolean).join(" · ")}
+            </span>
+          </p>
+        )}
         <p>
           First payment:{" "}
           {claim.firstPaidAt ? (
@@ -142,6 +170,38 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
           <p className="whitespace-pre-wrap break-words sm:col-span-2">Rep note: {claim.repNote}</p>
         )}
       </div>
+
+      {claim.candidates.length > 0 && (
+        <div className="rounded-md border border-gold/30 bg-gold/5 p-2.5">
+          <p className="mb-1.5 text-xs font-medium text-ink">
+            Possible matches. Link the right account and it confirms like an email claim.
+          </p>
+          <ul className="space-y-1">
+            {claim.candidates.map((m) => (
+              <li key={m.userId} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span className="min-w-0 flex-1">
+                  <span className="text-ink">{m.name}</span>{" "}
+                  <span className="break-all text-faint">{m.email ?? "no email"}</span>
+                </span>
+                <Badge tone={m.reason === "similar_name" ? "neutral" : "gold"}>{MATCH_REASON[m.reason]}</Badge>
+                <span className="text-faint">
+                  {m.premium ? "Premium" : "Free"}
+                  {m.signedUpAt && ` · joined ${formatDate(m.signedUpAt)}`}
+                </span>
+                {m.claimedByRep && <span className="text-danger">claimed by {m.claimedByRep}</span>}
+                <button
+                  type="button"
+                  onClick={() => save(false, m.userId)}
+                  disabled={isPending}
+                  className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-accent hover:text-bg disabled:opacity-60"
+                >
+                  Link
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[180px] flex-1">
@@ -250,6 +310,7 @@ function AddClaimForm({ reps }: { reps: SalesRep[] }) {
   const repId = activeReps.some((r) => r.id === pickedRepId) ? pickedRepId : activeReps[0]?.id ?? "";
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [kind, setKind] = useState<SalesClaimKind>("individual");
   const [claimedOn, setClaimedOn] = useState("");
   const [note, setNote] = useState("");
@@ -263,18 +324,24 @@ function AddClaimForm({ reps }: { reps: SalesRep[] }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!email.trim() && name.trim().length < 2) {
+      setError("Enter the customer's email or their name");
+      return;
+    }
     startTransition(async () => {
       try {
         await createClaim({
           repId,
-          customerEmail: email,
+          customerEmail: email || null,
           customerName: name || null,
+          customerPhone: phone || null,
           kind,
           repNote: note || null,
           claimedOn: claimedOn || null,
         });
         setEmail("");
         setName("");
+        setPhone("");
         setClaimedOn("");
         setNote("");
       } catch (err) {
@@ -295,10 +362,13 @@ function AddClaimForm({ reps }: { reps: SalesRep[] }) {
           ))}
         </select>
       </div>
+      <div className="min-w-[140px] flex-1">
+        <label className={LABEL}>Customer name</label>
+        <input maxLength={100} value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
+      </div>
       <div className="min-w-[180px] flex-1">
-        <label className={LABEL}>Customer email</label>
+        <label className={LABEL}>Email (if known)</label>
         <input
-          required
           type="email"
           maxLength={254}
           value={email}
@@ -306,9 +376,9 @@ function AddClaimForm({ reps }: { reps: SalesRep[] }) {
           className={INPUT}
         />
       </div>
-      <div className="min-w-[120px] flex-1">
-        <label className={LABEL}>Name (optional)</label>
-        <input maxLength={100} value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
+      <div className="w-32">
+        <label className={LABEL}>Phone (optional)</label>
+        <input type="tel" maxLength={30} value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT} />
       </div>
       <div className="w-32">
         <label className={LABEL}>Type</label>
@@ -420,9 +490,9 @@ export function ClaimsCard({ reps, claims }: { reps: SalesRep[]; claims: SalesCl
                     strokeWidth={1.75}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px]">{c.customerName || c.customerEmail}</span>
+                    <span className="block truncate text-[13px]">{claimLabel(c)}</span>
                     <span className="block truncate text-xs text-faint">
-                      {c.customerName ? `${c.customerEmail} · ` : ""}
+                      {c.customerName ? `${c.customerEmail ?? "no email"} · ` : ""}
                       {c.repName} · {KIND_LABEL[c.kind]} · {formatDate(c.claimedAt)}
                     </span>
                   </span>

@@ -55,6 +55,9 @@ export interface AuthUser {
   id: string;
   email: string | null;
   created_at: string;
+  // Display name from the auth provider (Google sign-in sets full_name).
+  // ~30% of users; user_profiles names are far sparser.
+  name?: string | null;
 }
 
 // Flattened, fully-serializable row for the customer table / detail panel.

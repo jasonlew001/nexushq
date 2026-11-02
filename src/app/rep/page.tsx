@@ -119,7 +119,7 @@ export default async function RepHomePage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px]">{c.customerName || c.customerEmail}</span>
                     <span className="block truncate text-xs text-faint">
-                      {c.customerName ? `${c.customerEmail} · ` : ""}
+                      {c.customerName && c.customerEmail ? `${c.customerEmail} · ` : ""}
                       {KIND_LABEL[c.kind]} · {formatDate(c.claimedAt)}
                     </span>
                   </span>

@@ -19,7 +19,9 @@ async function fetchAllAuthUsers(): Promise<CachedResult<AuthUser[]>> {
     }
 
     for (const u of data.users) {
-      users.push({ id: u.id, email: u.email ?? null, created_at: u.created_at });
+      const meta = (u.user_metadata ?? {}) as { full_name?: unknown; name?: unknown };
+      const name = typeof meta.full_name === "string" ? meta.full_name : typeof meta.name === "string" ? meta.name : null;
+      users.push({ id: u.id, email: u.email ?? null, created_at: u.created_at, name });
     }
 
     if (data.users.length < PAGE_SIZE) break;

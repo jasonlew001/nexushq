@@ -76,17 +76,28 @@ export async function repSetPassword(rawEmail: string, password: string): Promis
   return repSignIn(email, password);
 }
 
+// "  Jake  O'Brien " -> "jake o brien", for duplicate checks on name-only claims.
+function nameKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z]+/g, " ").trim();
+}
+
 export async function submitRepClaim(input: {
-  customerEmail: string;
+  customerEmail: string | null; // optional: reps may not know it yet
   customerName: string | null;
+  customerPhone: string | null;
   kind: SalesClaimKind;
   note: string | null;
 }): Promise<void> {
   const { repId } = await requireRep();
   if (!SALES_CLAIM_KINDS.includes(input.kind)) throw new Error("Pick a customer type");
-  const email = normalizeEmail(input.customerEmail);
+  const email = input.customerEmail?.trim() ? normalizeEmail(input.customerEmail) : null;
   const customerName = input.customerName?.trim() || null;
   if (customerName && customerName.length > 100) throw new Error("Name must be 100 characters or fewer");
+  if (!email && (!customerName || customerName.length < 2)) {
+    throw new Error("Enter their email, or their full name if you don't know it");
+  }
+  const customerPhone = input.customerPhone?.trim() || null;
+  if (customerPhone && customerPhone.length > 30) throw new Error("Phone must be 30 characters or fewer");
   const note = input.note?.trim() || null;
   if (note && note.length > 500) throw new Error("Note must be 500 characters or fewer");
 
@@ -94,17 +105,29 @@ export async function submitRepClaim(input: {
 
   // RLS only returns this rep's own claims, so this never reveals whether
   // another rep has claimed the same customer.
-  const { data: existing } = await supabase
-    .from("hq_sales_claims")
-    .select("id")
-    .eq("customer_email", email)
-    .limit(1);
-  if (existing && existing.length > 0) throw new Error("You've already submitted this customer");
+  if (email) {
+    const { data: existing } = await supabase
+      .from("hq_sales_claims")
+      .select("id")
+      .eq("customer_email", email)
+      .limit(1);
+    if (existing && existing.length > 0) throw new Error("You've already submitted this customer");
+  } else {
+    const { data: nameOnly } = await supabase
+      .from("hq_sales_claims")
+      .select("customer_name")
+      .is("customer_email", null);
+    const key = nameKey(customerName!);
+    if ((nameOnly ?? []).some((r) => r.customer_name && nameKey(r.customer_name) === key)) {
+      throw new Error("You've already submitted someone with this name");
+    }
+  }
 
   const { error } = await supabase.from("hq_sales_claims").insert({
     rep_id: repId,
     customer_email: email,
     customer_name: customerName,
+    customer_phone: customerPhone,
     kind: input.kind,
     rep_note: note,
   });

@@ -17,6 +17,7 @@ const KIND_LABEL: Record<SalesClaimKind, string> = {
 export function RepClaimForm() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [kind, setKind] = useState<SalesClaimKind>("individual");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +28,23 @@ export function RepClaimForm() {
     e.preventDefault();
     setError(null);
     setSubmitted(null);
+    if (!email.trim() && name.trim().length < 2) {
+      setError("Enter their email, or their full name if you don't know it.");
+      return;
+    }
     startTransition(async () => {
       try {
-        await submitRepClaim({ customerEmail: email, customerName: name || null, kind, note: note || null });
-        setSubmitted(email);
+        await submitRepClaim({
+          customerEmail: email || null,
+          customerName: name || null,
+          customerPhone: phone || null,
+          kind,
+          note: note || null,
+        });
+        setSubmitted(name.trim() || email);
         setEmail("");
         setName("");
+        setPhone("");
         setNote("");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't submit that customer");
@@ -43,34 +55,50 @@ export function RepClaimForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label htmlFor="claim-email" className={LABEL}>
-          Customer&apos;s email (the one they&apos;ll sign up with)
+        <label htmlFor="claim-name" className={LABEL}>
+          Customer&apos;s full name
         </label>
         <input
-          id="claim-email"
-          type="email"
-          required
-          maxLength={254}
+          id="claim-name"
+          maxLength={100}
           autoComplete="off"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="First and last name"
           className={INPUT}
         />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="claim-name" className={LABEL}>
-            Name <span className="text-faint">(optional)</span>
+          <label htmlFor="claim-email" className={LABEL}>
+            Email <span className="text-faint">(if you know it)</span>
           </label>
           <input
-            id="claim-name"
-            maxLength={100}
+            id="claim-email"
+            type="email"
+            maxLength={254}
             autoComplete="off"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className={INPUT}
           />
         </div>
+        <div>
+          <label htmlFor="claim-phone" className={LABEL}>
+            Phone <span className="text-faint">(optional)</span>
+          </label>
+          <input
+            id="claim-phone"
+            type="tel"
+            maxLength={30}
+            autoComplete="off"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className={INPUT}
+          />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="claim-kind" className={LABEL}>
             Type
@@ -88,20 +116,24 @@ export function RepClaimForm() {
             ))}
           </select>
         </div>
+        <div>
+          <label htmlFor="claim-note" className={LABEL}>
+            Note <span className="text-faint">(optional)</span>
+          </label>
+          <input
+            id="claim-note"
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. met at the Dallas junior open"
+            className={INPUT}
+          />
+        </div>
       </div>
-      <div>
-        <label htmlFor="claim-note" className={LABEL}>
-          Note <span className="text-faint">(optional)</span>
-        </label>
-        <input
-          id="claim-note"
-          maxLength={500}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. met at the Dallas junior open"
-          className={INPUT}
-        />
-      </div>
+      <p className="text-xs text-faint">
+        Name, email, or both. If you don&apos;t know the email they&apos;ll sign up with, the name (and phone, if you
+        have it) is enough. Nexus matches it up.
+      </p>
 
       {error && <p className="text-xs text-danger">{error}</p>}
       {submitted && (
