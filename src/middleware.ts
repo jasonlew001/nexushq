@@ -36,16 +36,25 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const path = request.nextUrl.pathname;
+  // Sales rep portal: its own magic-link login, never pointed at /login (the
+  // founders' page). requireRep() is the real gate, same split as founders.
+  const isRepRoute = path === "/rep" || path.startsWith("/rep/");
+  const isRepLogin = path === "/rep/login";
+
   const isPublicRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/auth/callback");
+    path.startsWith("/login") || path.startsWith("/auth/callback") || isRepLogin;
 
   if (!user && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(isRepRoute ? "/rep/login" : "/login", request.url));
   }
 
-  if (user && request.nextUrl.pathname.startsWith("/login")) {
+  if (user && path.startsWith("/login")) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (user && isRepLogin) {
+    return NextResponse.redirect(new URL("/rep", request.url));
   }
 
   return response;

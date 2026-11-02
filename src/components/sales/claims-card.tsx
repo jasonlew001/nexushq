@@ -57,6 +57,13 @@ function centsToInput(cents: number | null | undefined): string {
   return cents == null ? "" : String(cents / 100);
 }
 
+// The founder's own calendar date — the server's "today" is UTC, which on a
+// US evening at month end is already next month's payout.
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function ClaimReview({ claim }: { claim: SalesClaim }) {
   const [linkedEmail, setLinkedEmail] = useState(claim.linkedManually ? claim.matchedEmail ?? "" : "");
   const [payment, setPayment] = useState(centsToInput(claim.review?.paymentCents));
@@ -77,7 +84,8 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
           linkedEmail: linkedEmail || null,
           paymentCents: toCents(payment),
           commissionCents: toCents(commission),
-          earnedOn: earnedOn || null,
+          earnedOn:
+            earnedOn || (toCents(payment) != null || toCents(commission) != null ? localToday() : null),
           note: note || null,
         });
       } catch (err) {
@@ -236,7 +244,10 @@ function ClaimReview({ claim }: { claim: SalesClaim }) {
 
 function AddClaimForm({ reps }: { reps: SalesRep[] }) {
   const activeReps = reps.filter((r) => r.active);
-  const [repId, setRepId] = useState(activeReps[0]?.id ?? "");
+  const [pickedRepId, setRepId] = useState("");
+  // Fall back to the first active rep: the form stays mounted while reps are
+  // added/deactivated, so a remembered pick can go stale (or start empty).
+  const repId = activeReps.some((r) => r.id === pickedRepId) ? pickedRepId : activeReps[0]?.id ?? "";
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [kind, setKind] = useState<SalesClaimKind>("individual");

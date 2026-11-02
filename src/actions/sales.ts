@@ -81,6 +81,7 @@ export async function createClaim(input: {
   claimedOn: string | null; // "YYYY-MM-DD", null = now
 }): Promise<void> {
   await requireFounder();
+  if (!input.repId) throw new Error("Pick a rep");
   if (!SALES_CLAIM_KINDS.includes(input.kind)) throw new Error("Invalid type");
   const customerName = input.customerName?.trim() || null;
   if (customerName && customerName.length > 100) throw new Error("Name must be 100 characters or fewer");

@@ -39,9 +39,11 @@ export function createSupabaseServerClient() {
   );
 }
 
-// Service-role client — only for auth.users (emails, created_at) via the
-// admin API. RLS-blind; never used for user_profiles or anything a founder
-// session can already read.
+// Service-role client — for auth.users (emails, created_at) via the admin
+// API. RLS-blind; never used for anything a founder session can already
+// read. One other, documented use: the sales rep portal (lib/data/sales.ts
+// getRepPortalData, actions/rep.ts sendRepLoginLink), where the caller is a
+// rep whose session RLS deliberately can't see what the computation needs.
 export function getAdminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

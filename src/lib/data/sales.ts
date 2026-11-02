@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createSupabaseServerClient, getAdminClient } from "@/lib/supabase-server";
 import { getStripe } from "@/lib/stripe";
 import { getAllAuthUsers } from "@/lib/data/users";
-import { getAllProfiles } from "@/lib/data/profiles";
 import {
   REP_ACADEMY_CUT,
   REP_CLAIM_GRACE_DAYS,
@@ -180,14 +180,35 @@ async function fetchFirstPayment(customerId: string): Promise<FirstPayment | nul
   };
 }
 
-// Everything the Sales page needs. Founder-session reads (RLS: founders_all,
-// sql/012), joined with auth.users emails and user_profiles' Stripe customer
-// ids, then one pair of Stripe calls per matched individual claim. Claim
-// counts are small (one-month rep test), so this is computed live per
-// request rather than cached — a founder marking a payout paid must see
-// exactly what gets snapshotted.
-export const getSalesData = cache(async (): Promise<SalesData> => {
-  const supabase = createSupabaseServerClient();
+const PROFILE_PAGE_SIZE = 1000;
+
+// user id -> Stripe customer id, for every profile that has one.
+async function fetchCustomerIds(supabase: SupabaseClient): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("id, stripe_customer_id")
+      .not("stripe_customer_id", "is", null)
+      .range(from, from + PROFILE_PAGE_SIZE - 1);
+    if (error) throw new Error(`Failed to load user_profiles: ${error.message}`);
+    for (const row of (data ?? []) as { id: string; stripe_customer_id: string }[]) {
+      out.set(row.id, row.stripe_customer_id);
+    }
+    if (!data || data.length < PROFILE_PAGE_SIZE) break;
+    from += PROFILE_PAGE_SIZE;
+  }
+  return out;
+}
+
+// The whole sales picture: reps, claims, reviews and payouts joined with
+// auth.users emails and user_profiles' Stripe customer ids, then one pair of
+// Stripe calls per matched individual claim. Claim counts are small
+// (one-month rep test), so this is computed live per request rather than
+// cached — a founder marking a payout paid must see exactly what gets
+// snapshotted.
+async function loadSalesData(supabase: SupabaseClient): Promise<SalesData> {
   const [reps, claims, reviews, payouts] = await Promise.all([
     supabase
       .from("hq_sales_reps")
@@ -218,12 +239,14 @@ export const getSalesData = cache(async (): Promise<SalesData> => {
   const reviewRows = (reviews.data ?? []) as unknown as ReviewRow[];
   const payoutRows = (payouts.data ?? []) as unknown as PayoutRow[];
 
-  const [{ data: authUsers }, profiles] = await Promise.all([getAllAuthUsers(), getAllProfiles()]);
+  const [{ data: authUsers }, customerIdByUser] = await Promise.all([
+    getAllAuthUsers(),
+    fetchCustomerIds(supabase),
+  ]);
   const userByEmail = new Map(
     authUsers.filter((u) => u.email).map((u) => [u.email!.toLowerCase(), u])
   );
   const emailById = new Map(authUsers.map((u) => [u.id, u.email]));
-  const customerIdByUser = new Map(profiles.map((p) => [p.id, p.stripe_customer_id]));
   const repById = new Map(repRows.map((r) => [r.id, r]));
   const reviewByClaim = new Map(reviewRows.map((r) => [r.claim_id, r]));
 
@@ -362,6 +385,86 @@ export const getSalesData = cache(async (): Promise<SalesData> => {
       paymentReference: p.payment_reference,
       paidAt: p.paid_at,
     })),
+  };
+}
+
+// Founder view. Founder-session reads (RLS: founders_all, sql/012, and
+// founders_read_all on user_profiles).
+export const getSalesData = cache(
+  (): Promise<SalesData> => loadSalesData(createSupabaseServerClient())
+);
+
+// What a rep may see about their own claim. Deliberately coarse: only
+// "confirmed" proves the customer exists and paid. Everything a rep could use
+// to probe whether an email is a customer (signed up, paid before the claim,
+// claimed by another rep) collapses into "pending" or "review".
+export type RepClaimStatus = "pending" | "review" | "confirmed" | "not_approved";
+
+export interface RepClaimView {
+  id: string;
+  customerEmail: string;
+  customerName: string | null;
+  kind: SalesClaimKind;
+  claimedAt: string;
+  status: RepClaimStatus;
+  commissionCents: number;
+  earnedMonth: string | null;
+}
+
+export interface RepPortalData {
+  name: string;
+  monthlySalaryCents: number;
+  claims: RepClaimView[];
+  payouts: { periodMonth: string; salaryCents: number; commissionCents: number; totalCents: number; paidAt: string }[];
+}
+
+const REP_STATUS: Record<ClaimStatus, RepClaimStatus> = {
+  waiting_signup: "pending",
+  not_paid: "pending",
+  needs_amount: "review",
+  plan_unknown: "review",
+  paid_before_claim: "review",
+  conflict: "review",
+  confirmed: "confirmed",
+  rejected: "not_approved",
+};
+
+// Rep view. Uses the service role, with justification: a rep's session
+// can't (and must not) read customer profiles, founder reviews, or other
+// reps' claims — but all three decide their claim statuses (match, overrides,
+// first-claim-wins). The full picture is computed server-side and only the
+// calling rep's coarse rows leave this function. repId must come from
+// requireRep(), never from the client.
+export const getRepPortalData = cache(async (repId: string): Promise<RepPortalData | null> => {
+  const data = await loadSalesData(getAdminClient());
+  const rep = data.reps.find((r) => r.id === repId);
+  if (!rep) return null;
+
+  return {
+    name: rep.name,
+    monthlySalaryCents: rep.monthlySalaryCents,
+    claims: data.claims
+      .filter((c) => c.repId === repId)
+      .map((c) => ({
+        id: c.id,
+        customerEmail: c.customerEmail,
+        customerName: c.customerName,
+        kind: c.kind,
+        claimedAt: c.claimedAt,
+        status: REP_STATUS[c.status],
+        commissionCents: c.status === "confirmed" ? c.commissionCents : 0,
+        earnedMonth: c.status === "confirmed" ? c.earnedMonth : null,
+      })),
+    payouts: data.payouts
+      .filter((p) => p.repId === repId)
+      .sort((a, b) => b.periodMonth.localeCompare(a.periodMonth))
+      .map((p) => ({
+        periodMonth: p.periodMonth,
+        salaryCents: p.salaryCents,
+        commissionCents: p.commissionCents,
+        totalCents: p.totalCents,
+        paidAt: p.paidAt,
+      })),
   };
 });
 
