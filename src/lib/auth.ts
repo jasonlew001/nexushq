@@ -23,24 +23,38 @@ export type RepSession = {
 // The rep portal's gate. Rep identity = the session's verified email
 // matching an active hq_sales_reps row (current_sales_rep_id(), sql/012).
 // Signed in but not an active rep -> 404, same no-hints rule as founders.
-export const requireRep = cache(async (): Promise<RepSession> => {
-  const supabase = createSupabaseServerClient();
+// The /rep page's gate. Signed in but not an active rep (a founder opening
+// the rep link in their HQ browser, a deactivated rep) returns `notRep` so
+// the page can say so with a sign-out — /rep/login bounces signed-in
+// visitors to /rep, so a 404 there is a dead end.
+export const getRepAccess = cache(
+  async (): Promise<RepSession | { notRep: true; email: string | undefined }> => {
+    const supabase = createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/rep/login");
+    if (!user) {
+      redirect("/rep/login");
+    }
+
+    const { data: repId, error } = await supabase.rpc("current_sales_rep_id");
+
+    if (error || !repId) {
+      return { notRep: true, email: user.email };
+    }
+
+    return { userId: user.id, repId: repId as string };
   }
+);
 
-  const { data: repId, error } = await supabase.rpc("current_sales_rep_id");
-
-  if (error || !repId) {
+export const requireRep = cache(async (): Promise<RepSession> => {
+  const access = await getRepAccess();
+  if ("notRep" in access) {
     notFound();
   }
-
-  return { userId: user.id, repId: repId as string };
+  return access;
 });
 
 export const requireFounder = cache(async (): Promise<FoundersSession> => {

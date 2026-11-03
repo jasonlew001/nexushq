@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireRep } from "@/lib/auth";
+import { getRepAccess } from "@/lib/auth";
 import { getRepPortalData, type RepClaimStatus } from "@/lib/data/sales";
 import { repSignOut } from "@/actions/rep";
 import { RepClaimForm } from "@/components/rep/rep-claim-form";
@@ -45,9 +45,36 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
+function NotARep({ email }: { email: string | undefined }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <div className="w-full max-w-sm space-y-3 rounded-lg border border-edge bg-surface p-5">
+        <p className="text-[15px] font-semibold">This isn&apos;t a rep account</p>
+        <p className="text-sm text-muted">
+          You&apos;re signed in as <span className="break-all text-ink">{email ?? "another account"}</span>,
+          which isn&apos;t on the active rep list. Sign out to sign in as a rep.
+        </p>
+        <p className="text-xs text-faint">
+          Signing out also signs this browser out of Nexus HQ. To try the rep portal without that, use a
+          private window.
+        </p>
+        <form action={repSignOut}>
+          <button
+            type="submit"
+            className="w-full rounded-md border border-accent bg-accent px-3 py-2 text-sm text-bg"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default async function RepHomePage() {
-  const { repId } = await requireRep();
-  const data = await getRepPortalData(repId);
+  const access = await getRepAccess();
+  if ("notRep" in access) return <NotARep email={access.email} />;
+  const data = await getRepPortalData(access.repId);
   if (!data) notFound();
 
   const month = new Date().toISOString().slice(0, 7);
