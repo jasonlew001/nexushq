@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createRep, deleteRep, updateRep } from "@/actions/sales";
@@ -115,6 +115,35 @@ function RepRow({ rep }: { rep: RepWithHistory }) {
   );
 }
 
+// The page reps bookmark. Built from the current origin so it's right on
+// localhost and in production alike.
+function RepLoginLink() {
+  const [url, setUrl] = useState("/rep/login");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => setUrl(`${window.location.origin}/rep/login`), []);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked; the link is selectable text.
+    }
+  }
+
+  return (
+    <div className="mb-3 flex items-center gap-2 rounded-md border border-edge bg-surface-2 px-2 py-1.5">
+      <span className="text-[10px] uppercase tracking-wider text-faint">Rep login</span>
+      <span className="min-w-0 flex-1 select-all break-all text-xs">{url}</span>
+      <button type="button" onClick={copy} className="text-xs text-muted hover:text-ink">
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
 export function RepsCard({ reps }: { reps: RepWithHistory[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -145,6 +174,7 @@ export function RepsCard({ reps }: { reps: RepWithHistory[] }) {
   return (
     <Card>
       <SectionLabel aside="Salary is per month; $0 = commission only">Reps</SectionLabel>
+      <RepLoginLink />
       {reps.length > 0 ? (
         <table className="mb-3 w-full text-left">
           <thead>
