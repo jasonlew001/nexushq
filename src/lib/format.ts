@@ -1,3 +1,5 @@
+import { HQ_TIME_ZONE } from "./constants";
+
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -82,6 +84,30 @@ export function startOfWeekUTC(date: Date): string {
   const diff = day === 0 ? -6 : 1 - day; // shift to Monday
   d.setUTCDate(d.getUTCDate() + diff);
   return d.toISOString().slice(0, 10);
+}
+
+const hqDayParts = new Intl.DateTimeFormat("en-US", {
+  timeZone: HQ_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// Calendar date of `date` in HQ_TIME_ZONE, as "YYYY-MM-DD".
+export function hqDayKey(date: Date): string {
+  const parts = Object.fromEntries(hqDayParts.formatToParts(date).map((p) => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+// The "YYYY-MM-DD" key `n` days before `dayKey` (pure calendar math).
+export function dayKeyMinus(dayKey: string, n: number): string {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10);
+}
+
+// Monday-start week key for the HQ_TIME_ZONE calendar day of `date`.
+export function hqWeekStart(date: Date): string {
+  return startOfWeekUTC(new Date(`${hqDayKey(date)}T00:00:00Z`));
 }
 
 export function weeksAgoUTC(n: number): Date {

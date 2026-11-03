@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { getCustomerRows } from "./customers";
 import { getStripeMetrics } from "./stripe-metrics";
-import { startOfWeekUTC, weeksAgoUTC } from "@/lib/format";
+import { dayKeyMinus, hqDayKey, hqWeekStart } from "@/lib/format";
 import { CHART_WEEKS, UNATTRIBUTED, OTHER_SOURCE, NO_ACQ_DATA, ACQ_SOURCE_ORDER } from "@/lib/constants";
 
 export interface WeeklySignupBucket {
@@ -21,7 +21,7 @@ export interface SourceBucket {
 }
 
 export interface DailySignupBucket {
-  date: string; // YYYY-MM-DD, UTC
+  date: string; // YYYY-MM-DD, HQ_TIME_ZONE calendar day
   count: number;
 }
 
@@ -37,7 +37,7 @@ export interface SignupMetrics {
   weekly: WeeklySignupBucket[];
   byState: StateBucket[];
   unknownStateCount: number;
-  // Trailing 7 calendar days (UTC, including today) vs the 7 days before —
+  // Trailing 7 calendar days (HQ_TIME_ZONE, incl. today) vs the 7 before —
   // the KPI card's "Signups · last 7 days". Same window as `dailySignups`,
   // so it equals the sum of the chart's "Past week" bars and the sparkline
   // under the card. Two full 7-day windows, so the delta is like-for-like.
@@ -49,7 +49,7 @@ export interface SignupMetrics {
   // filter. Note: cohort membership is *today's* payment status; a user who
   // later paid counts in their original signup week.
   weeklyPayingOnly: WeeklySignupBucket[];
-  // Trailing 7 calendar days (UTC), including today's partial day — for the
+  // Trailing 7 calendar days (HQ_TIME_ZONE), incl. today's partial day, for the
   // day-bar chart. Independent of the weekly buckets above.
   dailySignups: DailySignupBucket[];
   // Attribution split for the same cohort as `wow.current` (last complete
@@ -114,7 +114,10 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   // Pass 2: weekly stacked buckets, trailing CHART_WEEKS weeks — built for
   // the full cohort and (with the same shape) for currently-paying users
   // only, so the chart's cohort toggle is a data swap, not a re-fetch.
-  const earliestWeek = startOfWeekUTC(weeksAgoUTC(CHART_WEEKS - 1));
+  // Days and weeks are HQ_TIME_ZONE calendar days, not UTC (a 9pm ET signup
+  // on Monday belongs to Monday).
+  const todayKey = hqDayKey(new Date());
+  const earliestWeek = hqWeekStart(new Date(`${dayKeyMinus(todayKey, (CHART_WEEKS - 1) * 7)}T12:00:00Z`));
   const payingIds = new Set(paying.map((r) => r.id));
   const weekMap = new Map<string, WeeklySignupBucket>();
   const payingWeekMap = new Map<string, WeeklySignupBucket>();
@@ -130,7 +133,7 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
   }
 
   for (const row of rows) {
-    const weekStart = startOfWeekUTC(new Date(row.signedUpAt));
+    const weekStart = hqWeekStart(new Date(row.signedUpAt));
     if (weekStart < earliestWeek) continue;
     const key = bucketUtmSource(row.utmSource);
     addToBucket(weekMap, weekStart, key);
@@ -182,7 +185,7 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
 
   // Attribution split for the last complete week's cohort — derived
   // from the weekly bucket we already built, not a new pass over `rows`.
-  const completeWeeks = weekly.filter((w) => w.weekStart < startOfWeekUTC(new Date()));
+  const completeWeeks = weekly.filter((w) => w.weekStart < hqWeekStart(new Date()));
   const lastCompleteWeekBucket = completeWeeks.at(-1);
   const lastCompleteWeekUnattributed = lastCompleteWeekBucket?.byUtmSource[UNATTRIBUTED] ?? 0;
   const lastCompleteWeekAttribution: AttributionSplit = {
@@ -190,18 +193,14 @@ export const getSignupMetrics = cache(async (): Promise<SignupMetrics> => {
     unknown: lastCompleteWeekUnattributed,
   };
 
-  // Trailing 7 calendar days (UTC) including today, zero-filled so the bar
-  // chart always renders 7 bars regardless of gaps. Counted over twice the
-  // window so the 7 days before it are there for the last-7-days delta.
+  // Trailing 7 calendar days (HQ_TIME_ZONE) including today, zero-filled so
+  // the bar chart always renders 7 bars regardless of gaps. Counted over
+  // twice the window so the 7 days before it are there for the delta.
   const dailyMap = new Map<string, number>();
-  const today = new Date();
-  const dayKeyAgo = (n: number) =>
-    new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - n))
-      .toISOString()
-      .slice(0, 10);
+  const dayKeyAgo = (n: number) => dayKeyMinus(todayKey, n);
   const earliestDayKey = dayKeyAgo(DAILY_WINDOW_DAYS * 2 - 1);
   for (const row of rows) {
-    const dayKey = row.signedUpAt.slice(0, 10);
+    const dayKey = hqDayKey(new Date(row.signedUpAt));
     if (dayKey < earliestDayKey) continue;
     dailyMap.set(dayKey, (dailyMap.get(dayKey) ?? 0) + 1);
   }

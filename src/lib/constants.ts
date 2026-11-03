@@ -2,6 +2,11 @@
 // later, no fancy forecasting").
 export const ANTHROPIC_MONTHLY_SPEND_ALERT_USD = 500;
 
+// HQ's calendar for "which day/week did this signup happen". UTC days roll
+// over at 7-8pm US time, which put Monday-evening signups on Tuesday. Edit
+// here to move the boundary.
+export const HQ_TIME_ZONE = "America/New_York";
+
 // Attribution columns are NULL for everyone who signed up before this date
 // (Part A shipped 2026-07-05). Never treat that as broken data.
 export const TRACKING_START_DATE = "2026-07-05";
