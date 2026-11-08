@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
@@ -95,6 +96,13 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+
+        <p className="mt-4 text-center text-[13px] text-white/60">
+          Are you a sales rep?{" "}
+          <Link href="/rep/login" className="font-medium text-brand-gold hover:underline">
+            Log in to the rep portal
+          </Link>
+        </p>
       </div>
     </div>
   );
